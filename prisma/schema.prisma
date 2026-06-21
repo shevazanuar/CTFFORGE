@@ -1,0 +1,255 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         String   @default("USER") // "USER" | "ADMIN"
+  totalPoint   Int      @default(0) @map("total_point")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  createdCourses           Course[]                  @relation("UserCourses")
+  createdChallenges         Challenge[]               @relation("UserChallenges")
+  createdBugBountyPrograms BugBountyProgram[]        @relation("UserBugBounties")
+  generatedDrafts          GeneratedChallengeDraft[] @relation("UserDrafts")
+  reviewedDrafts           GeneratedChallengeDraft[] @relation("ReviewerDrafts")
+  courseProgress           CourseProgress[]
+  submissions              ChallengeSubmission[]
+  bugReports               BugReport[]               @relation("UserBugReports")
+  reviewedReports          BugReport[]               @relation("ReviewerBugReports")
+  badges                   UserBadge[]
+  pointTransactions        PointTransaction[]
+
+  @@map("users")
+}
+
+model Course {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  level       String   // "BEGINNER" | "INTERMEDIATE" | "ADVANCED"
+  isPublished Boolean  @default(false) @map("is_published")
+  createdBy   String   @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  creator User     @relation("UserCourses", fields: [createdBy], references: [id], onDelete: Cascade)
+  modules Module[]
+
+  @@map("courses")
+}
+
+model Module {
+  id         String   @id @default(uuid())
+  courseId   String   @map("course_id")
+  title      String
+  orderIndex Int      @map("order_index")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons Lesson[]
+
+  @@map("modules")
+}
+
+model Lesson {
+  id         String   @id @default(uuid())
+  moduleId   String   @map("module_id")
+  title      String
+  content    String
+  videoUrl   String?  @map("video_url")
+  orderIndex Int      @map("order_index")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  module         Module           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  courseProgress CourseProgress[]
+  challenges     Challenge[]      @relation("LessonChallenges")
+
+  @@map("lessons")
+}
+
+model CourseProgress {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  lessonId    String    @map("lesson_id")
+  isCompleted Boolean   @default(false) @map("is_completed")
+  completedAt DateTime? @map("completed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@map("course_progress")
+}
+
+model Challenge {
+  id              String   @id @default(uuid())
+  title           String
+  description     String
+  category        String   // "WEB" | "CRYPTO" | "FORENSICS" | "REV" | "OSINT" | "MISC"
+  difficulty      String   // "EASY" | "MEDIUM" | "HARD"
+  point           Int
+  flagHash        String   @map("flag_hash")
+  hint            String?
+  solution        String?
+  relatedLessonId String?  @map("related_lesson_id")
+  createdBy       String   @map("created_by")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  creator             User                      @relation("UserChallenges", fields: [createdBy], references: [id], onDelete: Cascade)
+  relatedLesson       Lesson?                   @relation("LessonChallenges", fields: [relatedLessonId], references: [id], onDelete: SetNull)
+  submissions         ChallengeSubmission[]
+  generatedFromDrafts GeneratedChallengeDraft[] @relation("DraftPublishedChallenge")
+
+  @@map("challenges")
+}
+
+model ChallengeSubmission {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  challengeId   String   @map("challenge_id")
+  submittedFlag String   @map("submitted_flag")
+  status        String   // "CORRECT" | "INCORRECT"
+  pointEarned   Int      @default(0) @map("point_earned")
+  submittedAt   DateTime @default(now()) @map("submitted_at")
+
+  // Relations
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challenge Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  @@map("challenge_submissions")
+}
+
+model BugBountyProgram {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  scope       String
+  outOfScope  String   @map("out_of_scope")
+  labUrl      String   @map("lab_url")
+  rewardPoint Int      @map("reward_point")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdBy   String   @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  creator User        @relation("UserBugBounties", fields: [createdBy], references: [id], onDelete: Cascade)
+  reports BugReport[]
+
+  @@map("bug_bounty_programs")
+}
+
+model BugReport {
+  id                String   @id @default(uuid())
+  userId            String   @map("user_id")
+  programId         String   @map("program_id")
+  title             String
+  vulnerabilityType String   @map("vulnerability_type") // "SQLI" | "XSS" | "IDOR" | "CSRF" | "BAC" | "RCE" | "LFI_RFI" | "OTHER"
+  severity          String   // "LOW" | "MEDIUM" | "HIGH" | "CRITICAL"
+  stepsToReproduce  String   @map("steps_to_reproduce")
+  impact            String
+  evidence          String
+  evidenceUrl       String?  @map("evidence_url")
+  status            String   @default("PENDING") // "PENDING" | "VALID" | "DUPLICATE" | "INFORMATIVE" | "REJECTED"
+  reviewedBy        String?  @map("reviewed_by")
+  pointAwarded      Int      @default(0) @map("point_awarded")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user     User             @relation("UserBugReports", fields: [userId], references: [id], onDelete: Cascade)
+  program  BugBountyProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  reviewer User?            @relation("ReviewerBugReports", fields: [reviewedBy], references: [id], onDelete: SetNull)
+
+  @@map("bug_reports")
+}
+
+model GeneratedChallengeDraft {
+  id                   String   @id @default(uuid())
+  generatedBy          String   @map("generated_by")
+  promptInput          String   @map("prompt_input")
+  category             String   // "WEB" | "CRYPTO" | "FORENSICS" | "REV" | "OSINT" | "MISC"
+  difficulty           String   // "EASY" | "MEDIUM" | "HARD"
+  generatedTitle       String   @map("generated_title")
+  generatedDescription String   @map("generated_description")
+  generatedHint        String   @map("generated_hint")
+  generatedSolution    String   @map("generated_solution")
+  generatedFlagHash    String   @map("generated_flag_hash")
+  generatedPoint       Int      @map("generated_point")
+  status               String   @default("PENDING") // "PENDING" | "APPROVED" | "REJECTED"
+  reviewedBy           String?  @map("reviewed_by")
+  publishedChallengeId String?  @map("published_challenge_id") @unique
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  creator            User       @relation("UserDrafts", fields: [generatedBy], references: [id], onDelete: Cascade)
+  reviewer           User?      @relation("ReviewerDrafts", fields: [reviewedBy], references: [id], onDelete: SetNull)
+  publishedChallenge Challenge? @relation("DraftPublishedChallenge", fields: [publishedChallengeId], references: [id], onDelete: SetNull)
+
+  @@map("generated_challenge_drafts")
+}
+
+model Badge {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String
+  iconUrl     String   @map("icon_url")
+  condition   String
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  earners UserBadge[]
+
+  @@map("badges")
+}
+
+model UserBadge {
+  id       String   @id @default(uuid())
+  userId   String   @map("user_id")
+  badgeId  String   @map("badge_id")
+  earnedAt DateTime @default(now()) @map("earned_at")
+
+  // Relations
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge Badge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+  @@map("user_badges")
+}
+
+model PointTransaction {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  sourceType  String   @map("source_type") // "CHALLENGE" | "BUG_REPORT" | "BONUS"
+  sourceId    String?  @map("source_id")
+  point       Int
+  description String
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("point_transactions")
+}
