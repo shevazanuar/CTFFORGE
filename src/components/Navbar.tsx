@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { Shield, Trophy, BookOpen, Target, FileText, Cpu, LogOut, LogIn, Award, Menu, X } from 'lucide-react';
+import { Shield, Trophy, BookOpen, Target, FileText, Cpu, LogOut, LogIn, Award, Menu, X, User as UserIcon } from 'lucide-react';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -93,10 +93,18 @@ export default function Navbar() {
                 </div>
 
                 {/* Profile menu details */}
-                <div className="text-right">
-                  <div className="text-sm font-mono font-medium text-white">{user.name}</div>
-                  <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">{user.role}</div>
-                </div>
+                <Link href="/profile" className="text-right hover:text-cyber-green transition-colors group">
+                  <div className="text-sm font-mono font-medium text-white group-hover:text-cyber-green">{user.name}</div>
+                  <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest group-hover:text-cyber-green/70">{user.role}</div>
+                </Link>
+
+                <Link
+                  href="/profile"
+                  className="p-2 rounded-lg bg-zinc-950 hover:bg-purple-500/10 hover:text-purple-400 border border-zinc-800 hover:border-purple-500/30 transition-all duration-200"
+                  title="My Profile"
+                >
+                  <UserIcon className="h-4 w-4" />
+                </Link>
 
                 <button
                   onClick={logout}
@@ -174,6 +182,19 @@ export default function Navbar() {
                   </Link>
                 );
               })}
+
+              <Link
+                href="/profile"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-base font-mono ${
+                  isActive('/profile')
+                    ? 'bg-purple-500/10 text-cyber-green border border-purple-500/20'
+                    : 'text-gray-400 hover:text-white hover:bg-zinc-900/60'
+                }`}
+              >
+                <UserIcon className="h-5 w-5" />
+                My Profile
+              </Link>
 
               {user.role === 'ADMIN' && (
                 <Link
