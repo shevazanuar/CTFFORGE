@@ -30,6 +30,7 @@ model User {
   reviewedReports          BugReport[]               @relation("ReviewerBugReports")
   badges                   UserBadge[]
   pointTransactions        PointTransaction[]
+  adminLogs                AdminLog[]
 
   @@map("users")
 }
@@ -252,4 +253,19 @@ model PointTransaction {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("point_transactions")
+}
+
+model AdminLog {
+  id          String   @id @default(uuid())
+  adminId     String   @map("admin_id")
+  action      String   // "APPROVE_BUG_REPORT" | "REJECT_BUG_REPORT" | "PUBLISH_DRAFT" | "REJECT_DRAFT" | "CREATE_CHALLENGE" | "CREATE_COURSE"
+  targetType  String   @map("target_type")
+  targetId    String   @map("target_id")
+  description String
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  admin User @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@map("admin_logs")
 }

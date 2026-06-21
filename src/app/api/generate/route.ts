@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import prisma from '@/lib/db';
 import { verifyToken } from '@/lib/auth';
 import { generateChallengeDraft } from '@/lib/generator';
 import { hashPassword } from '@/lib/password';
+
+const generateSchema = z.object({
+  prompt: z.string().min(5, 'Prompt minimal harus 5 karakter.').max(500),
+  category: z.string().min(1, 'Kategori wajib dipilih.'),
+  difficulty: z.string().min(1, 'Tingkat kesulitan wajib dipilih.'),
+});
 
 export async function GET(request: NextRequest) {
   try {
@@ -49,14 +56,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { prompt, category, difficulty } = await request.json();
+    const body = await request.json();
+    const result = generateSchema.safeParse(body);
 
-    if (!prompt || !category || !difficulty) {
+    if (!result.success) {
       return NextResponse.json(
-        { error: 'Prompt, kategori, dan tingkat kesulitan wajib diisi.' },
+        { error: result.error.issues[0].message },
         { status: 400 }
       );
     }
+
+    const { prompt, category, difficulty } = result.data;
 
     // Generate the challenge details using our rich templates
     const generated = await generateChallengeDraft(prompt, category, difficulty);

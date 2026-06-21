@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import prisma from '@/lib/db';
 import { verifyToken } from '@/lib/auth';
+
+const bugReportSchema = z.object({
+  programId: z.string().min(1, 'ID Program wajib diisi.'),
+  title: z.string().min(5, 'Judul laporan minimal harus 5 karakter.').max(100),
+  vulnerabilityType: z.string().min(1, 'Tipe kerentanan wajib dipilih.'),
+  severity: z.string().min(1, 'Severity level wajib dipilih.'),
+  stepsToReproduce: z.string().min(20, 'Langkah reproduksi minimal harus 20 karakter.'),
+  impact: z.string().min(20, 'Dampak analisis minimal harus 20 karakter.'),
+  evidence: z.string().min(5, 'Bukti kode exploit minimal harus 5 karakter.'),
+  evidenceUrl: z.string().url('Tautan bukti gambar harus berupa URL valid.').optional().or(z.literal('')),
+});
 
 export async function GET(request: NextRequest) {
   try {
@@ -49,6 +61,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const body = await request.json();
+    const result = bugReportSchema.safeParse(body);
+
+    if (!result.success) {
+      return NextResponse.json(
+        { error: result.error.issues[0].message },
+        { status: 400 }
+      );
+    }
+
     const {
       programId,
       title,
@@ -58,14 +80,7 @@ export async function POST(request: NextRequest) {
       impact,
       evidence,
       evidenceUrl,
-    } = await request.json();
-
-    if (!programId || !title || !vulnerabilityType || !severity || !stepsToReproduce || !impact || !evidence) {
-      return NextResponse.json(
-        { error: 'Mohon isi semua kolom laporan yang wajib.' },
-        { status: 400 }
-      );
-    }
+    } = result.data;
 
     // Verify program exists
     const program = await prisma.bugBountyProgram.findUnique({

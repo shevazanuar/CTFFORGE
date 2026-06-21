@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import prisma from '@/lib/db';
 import { verifyToken } from '@/lib/auth';
 import { comparePassword } from '@/lib/password';
+
+const submissionSchema = z.object({
+  flag: z.string().min(1, 'Flag tidak boleh kosong.').max(100),
+});
 
 export async function POST(
   request: NextRequest,
@@ -19,14 +24,17 @@ export async function POST(
     }
 
     const { id: challengeId } = await params;
-    const { flag } = await request.json();
+    const body = await request.json();
+    const result = submissionSchema.safeParse(body);
 
-    if (!flag) {
+    if (!result.success) {
       return NextResponse.json(
-        { error: 'Flag tidak boleh kosong.' },
+        { error: result.error.issues[0].message },
         { status: 400 }
       );
     }
+
+    const { flag } = result.data;
 
     // Fetch challenge
     const challenge = await prisma.challenge.findUnique({

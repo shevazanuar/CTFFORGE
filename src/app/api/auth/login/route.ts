@@ -1,18 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import prisma from '@/lib/db';
 import { comparePassword } from '@/lib/password';
 import { signToken } from '@/lib/auth';
 
+const loginSchema = z.object({
+  email: z.string().email('Format email tidak valid.'),
+  password: z.string().min(1, 'Password tidak boleh kosong.'),
+});
+
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json();
+    const body = await request.json();
+    const result = loginSchema.safeParse(body);
 
-    if (!email || !password) {
+    if (!result.success) {
       return NextResponse.json(
-        { error: 'Email dan password wajib diisi.' },
+        { error: result.error.issues[0].message },
         { status: 400 }
       );
     }
+
+    const { email, password } = result.data;
 
     // Find user
     const user = await prisma.user.findUnique({
