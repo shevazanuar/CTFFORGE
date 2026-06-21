@@ -13,7 +13,7 @@ const PROTECTED_ROUTES = [
 
 const AUTH_ROUTES = ['/login', '/register'];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
   // Get token from cookies
