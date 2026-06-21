@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import prisma from '@/lib/db';
 import { verifyToken } from '@/lib/auth';
+import { rateLimit } from '@/lib/rateLimit';
 
 const bugReportSchema = z.object({
   programId: z.string().min(1, 'ID Program wajib diisi.'),
@@ -51,6 +52,19 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = request.headers.get('x-forwarded-for') || '127.0.0.1';
+    const limitRes = rateLimit(`bug_report_${ip}`, 5, 60000); // Max 5 reports per minute
+
+    if (!limitRes.allowed) {
+      return NextResponse.json(
+        { error: `Batas pengiriman laporan bug terlampaui. Silakan coba lagi dalam ${Math.ceil(limitRes.retryAfter / 1000)} detik.` },
+        { 
+          status: 429, 
+          headers: { 'Retry-After': String(Math.ceil(limitRes.retryAfter / 1000)) } 
+        }
+      );
+    }
+
     const token = request.cookies.get('token')?.value;
     const session = token ? await verifyToken(token) : null;
 

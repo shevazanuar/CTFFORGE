@@ -3,6 +3,7 @@ import { z } from 'zod';
 import prisma from '@/lib/db';
 import { comparePassword } from '@/lib/password';
 import { signToken } from '@/lib/auth';
+import { rateLimit } from '@/lib/rateLimit';
 
 const loginSchema = z.object({
   email: z.string().email('Format email tidak valid.'),
@@ -11,6 +12,19 @@ const loginSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = request.headers.get('x-forwarded-for') || '127.0.0.1';
+    const limitRes = rateLimit(`login_${ip}`, 5, 60000); // Max 5 login requests per minute
+
+    if (!limitRes.allowed) {
+      return NextResponse.json(
+        { error: `Batas percobaan login terlampaui. Silakan coba lagi dalam ${Math.ceil(limitRes.retryAfter / 1000)} detik.` },
+        { 
+          status: 429, 
+          headers: { 'Retry-After': String(Math.ceil(limitRes.retryAfter / 1000)) } 
+        }
+      );
+    }
+
     const body = await request.json();
     const result = loginSchema.safeParse(body);
 

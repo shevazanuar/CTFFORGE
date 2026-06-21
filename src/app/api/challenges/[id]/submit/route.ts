@@ -3,6 +3,7 @@ import { z } from 'zod';
 import prisma from '@/lib/db';
 import { verifyToken } from '@/lib/auth';
 import { comparePassword } from '@/lib/password';
+import { rateLimit } from '@/lib/rateLimit';
 
 const submissionSchema = z.object({
   flag: z.string().min(1, 'Flag tidak boleh kosong.').max(100),
@@ -13,6 +14,19 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const ip = request.headers.get('x-forwarded-for') || '127.0.0.1';
+    const limitRes = rateLimit(`submit_${ip}`, 10, 60000); // Max 10 attempts per minute
+
+    if (!limitRes.allowed) {
+      return NextResponse.json(
+        { error: `Terlalu banyak mencoba flag. Silakan coba lagi dalam ${Math.ceil(limitRes.retryAfter / 1000)} detik.` },
+        { 
+          status: 429, 
+          headers: { 'Retry-After': String(Math.ceil(limitRes.retryAfter / 1000)) } 
+        }
+      );
+    }
+
     const token = request.cookies.get('token')?.value;
     const session = token ? await verifyToken(token) : null;
 

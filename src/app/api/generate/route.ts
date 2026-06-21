@@ -4,6 +4,7 @@ import prisma from '@/lib/db';
 import { verifyToken } from '@/lib/auth';
 import { generateChallengeDraft } from '@/lib/generator';
 import { hashPassword } from '@/lib/password';
+import { rateLimit } from '@/lib/rateLimit';
 
 const generateSchema = z.object({
   prompt: z.string().min(5, 'Prompt minimal harus 5 karakter.').max(500),
@@ -46,6 +47,19 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = request.headers.get('x-forwarded-for') || '127.0.0.1';
+    const limitRes = rateLimit(`generate_${ip}`, 5, 60000); // Max 5 per minute
+
+    if (!limitRes.allowed) {
+      return NextResponse.json(
+        { error: `Batas percobaan pembuatan soal terlampaui. Silakan coba lagi dalam ${Math.ceil(limitRes.retryAfter / 1000)} detik.` },
+        { 
+          status: 429, 
+          headers: { 'Retry-After': String(Math.ceil(limitRes.retryAfter / 1000)) } 
+        }
+      );
+    }
+
     const token = request.cookies.get('token')?.value;
     const session = token ? await verifyToken(token) : null;
 

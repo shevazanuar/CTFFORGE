@@ -3,6 +3,7 @@ import { z } from 'zod';
 import prisma from '@/lib/db';
 import { hashPassword } from '@/lib/password';
 import { signToken } from '@/lib/auth';
+import { rateLimit } from '@/lib/rateLimit';
 
 const registerSchema = z.object({
   name: z.string().min(2, 'Nama minimal harus 2 karakter.').max(50),
@@ -12,6 +13,19 @@ const registerSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = request.headers.get('x-forwarded-for') || '127.0.0.1';
+    const limitRes = rateLimit(`register_${ip}`, 3, 60000); // Max 3 registrations per minute
+
+    if (!limitRes.allowed) {
+      return NextResponse.json(
+        { error: `Batas percobaan registrasi terlampaui. Silakan coba lagi dalam ${Math.ceil(limitRes.retryAfter / 1000)} detik.` },
+        { 
+          status: 429, 
+          headers: { 'Retry-After': String(Math.ceil(limitRes.retryAfter / 1000)) } 
+        }
+      );
+    }
+
     const body = await request.json();
     const result = registerSchema.safeParse(body);
 
