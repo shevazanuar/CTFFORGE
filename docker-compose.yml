@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: ctfforge-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=ctfforge
+      - POSTGRES_PASSWORD=ctfforgepass
+      - POSTGRES_DB=ctfforgedb
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+    driver: local
