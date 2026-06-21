@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { verifyToken } from '@/lib/auth';
+import { logAdminAction } from '@/lib/audit';
 
 export async function GET(request: NextRequest) {
   try {
@@ -54,6 +55,14 @@ export async function POST(request: NextRequest) {
         createdBy: session.id,
       },
     });
+
+    await logAdminAction(
+      session.id,
+      'CREATE_PROGRAM',
+      'BugBountyProgram',
+      program.id,
+      `Created bug bounty program "${title}" (Reward: ${rewardPoint} pts)`
+    );
 
     return NextResponse.json({ program }, { status: 201 });
   } catch (error) {

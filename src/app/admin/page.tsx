@@ -3,24 +3,77 @@
 import React, { useEffect, useState } from 'react';
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/context/AuthContext';
-import { Cpu, FileText, Sparkles, BookOpen, Target, Users, Check, X, ShieldAlert, ChevronRight, Award, Trash2 } from 'lucide-react';
+import { 
+  Cpu, 
+  FileText, 
+  Sparkles, 
+  BookOpen, 
+  Target, 
+  Users, 
+  Check, 
+  X, 
+  ShieldAlert, 
+  ChevronRight, 
+  Award, 
+  Trash2, 
+  Edit2, 
+  Plus, 
+  ArrowLeft 
+} from 'lucide-react';
 
 interface User {
   id: string;
   name: string;
 }
 
+interface Lesson {
+  id: string;
+  moduleId: string;
+  title: string;
+  content: string;
+  videoUrl?: string | null;
+  orderIndex: number;
+}
+
+interface Module {
+  id: string;
+  courseId: string;
+  title: string;
+  orderIndex: number;
+  lessons: Lesson[];
+}
+
 interface Course {
   id: string;
   title: string;
+  description: string;
   level: string;
+  isPublished: boolean;
+  modules: Module[];
 }
 
 interface Challenge {
   id: string;
   title: string;
+  description: string;
   category: string;
+  difficulty: string;
   point: number;
+  hint?: string | null;
+  solution?: string | null;
+  relatedLessonId?: string | null;
+  flag?: string;
+}
+
+interface BugBountyProgram {
+  id: string;
+  title: string;
+  description: string;
+  scope: string;
+  outOfScope: string;
+  labUrl: string;
+  rewardPoint: number;
+  isActive: boolean;
 }
 
 interface BugReport {
@@ -63,9 +116,8 @@ interface AdminLog {
 export default function AdminPage() {
   const { user } = useAuth();
   
-  const [activeTab, setActiveTab] = useState<'reports' | 'drafts' | 'courses' | 'challenges' | 'logs'>('reports');
+  const [activeTab, setActiveTab] = useState<'reports' | 'drafts' | 'courses' | 'challenges' | 'programs' | 'logs'>('reports');
   const [loading, setLoading] = useState(true);
-  const [adminLogs, setAdminLogs] = useState<AdminLog[]>([]);
   
   // Dashboard stats
   const [stats, setStats] = useState({
@@ -80,10 +132,21 @@ export default function AdminPage() {
   const [pendingDrafts, setPendingDrafts] = useState<Draft[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
+  const [programs, setPrograms] = useState<BugBountyProgram[]>([]);
+  const [adminLogs, setAdminLogs] = useState<AdminLog[]>([]);
 
-  // Selection for review
+  // Selection for review/editing
   const [selectedReport, setSelectedReport] = useState<BugReport | null>(null);
   const [selectedDraft, setSelectedDraft] = useState<Draft | null>(null);
+
+  // Edit Modals states
+  const [editingCourse, setEditingCourse] = useState<Course | null>(null);
+  const [editingChallenge, setEditingChallenge] = useState<Challenge | null>(null);
+  const [editingProgram, setEditingProgram] = useState<BugBountyProgram | null>(null);
+
+  // Nested Course content states
+  const [selectedCourseForModules, setSelectedCourseForModules] = useState<Course | null>(null);
+  const [selectedModuleForLessons, setSelectedModuleForLessons] = useState<Module | null>(null);
 
   // Review actions fields
   const [reportReviewStatus, setReportReviewStatus] = useState('VALID');
@@ -95,6 +158,16 @@ export default function AdminPage() {
   const [newCourseDesc, setNewCourseDesc] = useState('');
   const [newCourseLevel, setNewCourseLevel] = useState('BEGINNER');
 
+  // CRUD Module form
+  const [newModTitle, setNewModTitle] = useState('');
+  const [editingModule, setEditingModule] = useState<Module | null>(null);
+
+  // CRUD Lesson form
+  const [newLesTitle, setNewLesTitle] = useState('');
+  const [newLesContent, setNewLesContent] = useState('');
+  const [newLesVideo, setNewLesVideo] = useState('');
+  const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
+
   // CRUD Challenge form
   const [newChTitle, setNewChTitle] = useState('');
   const [newChDesc, setNewChDesc] = useState('');
@@ -104,24 +177,36 @@ export default function AdminPage() {
   const [newChFlag, setNewChFlag] = useState('');
   const [newChHint, setNewChHint] = useState('');
   const [newChSol, setNewChSol] = useState('');
+  const [newChLessonId, setNewChLessonId] = useState('');
+
+  // CRUD Program form
+  const [newProgTitle, setNewProgTitle] = useState('');
+  const [newProgDesc, setNewProgDesc] = useState('');
+  const [newProgScope, setNewProgScope] = useState('');
+  const [newProgOutScope, setNewProgOutScope] = useState('');
+  const [newProgLabUrl, setNewProgLabUrl] = useState('');
+  const [newProgPoints, setNewProgPoints] = useState('200');
 
   const fetchAdminData = async () => {
     try {
       setLoading(true);
-      // Fetch users count & general stats (we can calculate from list endpoints)
+      // Fetch stats & lists
       const reportsRes = await fetch('/api/bug-bounty/reports');
       const draftsRes = await fetch('/api/generate');
       const coursesRes = await fetch('/api/courses');
       const chRes = await fetch('/api/challenges');
       const lbRes = await fetch('/api/leaderboard');
       const logsRes = await fetch('/api/admin/logs');
+      const progRes = await fetch('/api/bug-bounty');
 
-      if (reportsRes.ok && draftsRes.ok && coursesRes.ok && chRes.ok && lbRes.ok) {
+      if (reportsRes.ok && draftsRes.ok && coursesRes.ok && chRes.ok && lbRes.ok && logsRes.ok && progRes.ok) {
         const reportsData = await reportsRes.json();
         const draftsData = await draftsRes.json();
         const coursesData = await coursesRes.json();
         const chData = await chRes.json();
         const lbData = await lbRes.json();
+        const logsData = await logsRes.json();
+        const progData = await progRes.json();
 
         const pReports = reportsData.reports.filter((r: any) => r.status === 'PENDING');
         const pDrafts = draftsData.drafts.filter((d: any) => d.status === 'PENDING');
@@ -130,10 +215,26 @@ export default function AdminPage() {
         setPendingDrafts(pDrafts);
         setCourses(coursesData.courses);
         setChallenges(chData.challenges);
+        setAdminLogs(logsData.logs);
+        setPrograms(progData.programs);
 
-        if (logsRes.ok) {
-          const logsData = await logsRes.json();
-          setAdminLogs(logsData.logs);
+        // Keep selected dynamic context fresh if loaded in UI
+        if (selectedCourseForModules) {
+          const freshCourse = coursesData.courses.find((c: any) => c.id === selectedCourseForModules.id);
+          if (freshCourse) {
+            setSelectedCourseForModules(freshCourse);
+            if (selectedModuleForLessons) {
+              const freshMod = freshCourse.modules.find((m: any) => m.id === selectedModuleForLessons.id);
+              if (freshMod) {
+                setSelectedModuleForLessons(freshMod);
+              } else {
+                setSelectedModuleForLessons(null);
+              }
+            }
+          } else {
+            setSelectedCourseForModules(null);
+            setSelectedModuleForLessons(null);
+          }
         }
 
         setStats({
@@ -172,7 +273,7 @@ export default function AdminPage() {
       });
 
       if (res.ok) {
-        alert(`Bug report review submitted successfully with status: ${status}`);
+        alert(`Ulasan laporan bug berhasil diserahkan dengan status: ${status}`);
         setSelectedReport(null);
         fetchAdminData();
       } else {
@@ -198,7 +299,7 @@ export default function AdminPage() {
       });
 
       if (res.ok) {
-        alert(`Draft has been ${status === 'APPROVED' ? 'APPROVED & PUBLISHED live' : 'REJECTED'}.`);
+        alert(`Draf telah ${status === 'APPROVED' ? 'DISETUJUI & DIPUBLIKASIKAN secara live' : 'DITOLAK'}.`);
         setSelectedDraft(null);
         fetchAdminData();
       } else {
@@ -211,7 +312,7 @@ export default function AdminPage() {
     }
   };
 
-  // Create Course
+  // CRUD Course Handlers
   const handleCreateCourse = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -239,7 +340,178 @@ export default function AdminPage() {
     }
   };
 
-  // Create Challenge
+  const handleUpdateCourse = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCourse) return;
+    try {
+      const res = await fetch(`/api/admin/courses/${editingCourse.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editingCourse),
+      });
+
+      if (res.ok) {
+        alert('Course berhasil diperbarui!');
+        setEditingCourse(null);
+        fetchAdminData();
+      } else {
+        alert('Gagal memperbarui course.');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteCourse = async (id: string) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus course ini? Semua modul dan materi di dalamnya akan ikut terhapus.')) return;
+    try {
+      const res = await fetch(`/api/admin/courses/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        alert('Course berhasil dihapus.');
+        fetchAdminData();
+      } else {
+        alert('Gagal menghapus course.');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // CRUD Module Handlers
+  const handleCreateModule = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedCourseForModules) return;
+    try {
+      const res = await fetch('/api/admin/modules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          courseId: selectedCourseForModules.id,
+          title: newModTitle,
+          orderIndex: selectedCourseForModules.modules.length + 1,
+        }),
+      });
+
+      if (res.ok) {
+        setNewModTitle('');
+        fetchAdminData();
+      } else {
+        alert('Gagal membuat modul.');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleUpdateModule = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingModule) return;
+    try {
+      const res = await fetch('/api/admin/modules', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingModule.id,
+          title: editingModule.title,
+        }),
+      });
+
+      if (res.ok) {
+        setEditingModule(null);
+        fetchAdminData();
+      } else {
+        alert('Gagal mengubah modul.');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteModule = async (id: string) => {
+    if (!confirm('Hapus modul ini beserta semua pelajarannya?')) return;
+    try {
+      const res = await fetch(`/api/admin/modules/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        fetchAdminData();
+      } else {
+        alert('Gagal menghapus modul.');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // CRUD Lesson Handlers
+  const handleCreateLesson = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedModuleForLessons) return;
+    try {
+      const res = await fetch('/api/admin/lessons', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          moduleId: selectedModuleForLessons.id,
+          title: newLesTitle,
+          content: newLesContent,
+          videoUrl: newLesVideo || null,
+          orderIndex: selectedModuleForLessons.lessons.length + 1,
+        }),
+      });
+
+      if (res.ok) {
+        setNewLesTitle('');
+        setNewLesContent('');
+        setNewLesVideo('');
+        fetchAdminData();
+      } else {
+        alert('Gagal menambahkan pelajaran.');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleUpdateLesson = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingLesson) return;
+    try {
+      const res = await fetch('/api/admin/lessons', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingLesson.id,
+          title: editingLesson.title,
+          content: editingLesson.content,
+          videoUrl: editingLesson.videoUrl || null,
+        }),
+      });
+
+      if (res.ok) {
+        setEditingLesson(null);
+        fetchAdminData();
+      } else {
+        alert('Gagal memperbarui pelajaran.');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteLesson = async (id: string) => {
+    if (!confirm('Hapus pelajaran ini?')) return;
+    try {
+      const res = await fetch(`/api/admin/lessons/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        fetchAdminData();
+      } else {
+        alert('Gagal menghapus pelajaran.');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // CRUD Challenge Handlers
   const handleCreateChallenge = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -255,6 +527,7 @@ export default function AdminPage() {
           flag: newChFlag,
           hint: newChHint,
           solution: newChSol,
+          relatedLessonId: newChLessonId || null,
         }),
       });
 
@@ -265,12 +538,120 @@ export default function AdminPage() {
         setNewChFlag('');
         setNewChHint('');
         setNewChSol('');
+        setNewChLessonId('');
         fetchAdminData();
       } else {
         alert('Gagal membuat tantangan.');
       }
     } catch (err) {
       console.error('Error creating challenge:', err);
+    }
+  };
+
+  const handleUpdateChallenge = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingChallenge) return;
+    try {
+      const res = await fetch(`/api/admin/challenges/${editingChallenge.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editingChallenge),
+      });
+
+      if (res.ok) {
+        alert('Tantangan berhasil diperbarui!');
+        setEditingChallenge(null);
+        fetchAdminData();
+      } else {
+        alert('Gagal memperbarui tantangan.');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteChallenge = async (id: string) => {
+    if (!confirm('Hapus tantangan ini secara permanen?')) return;
+    try {
+      const res = await fetch(`/api/admin/challenges/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        alert('Tantangan berhasil dihapus.');
+        fetchAdminData();
+      } else {
+        alert('Gagal menghapus tantangan.');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // CRUD Bug Bounty Program Handlers
+  const handleCreateProgram = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch('/api/bug-bounty', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: newProgTitle,
+          description: newProgDesc,
+          scope: newProgScope,
+          outOfScope: newProgOutScope,
+          labUrl: newProgLabUrl,
+          rewardPoint: parseInt(newProgPoints),
+        }),
+      });
+
+      if (res.ok) {
+        alert('Program Bug Bounty baru berhasil dibuat!');
+        setNewProgTitle('');
+        setNewProgDesc('');
+        setNewProgScope('');
+        setNewProgOutScope('');
+        setNewProgLabUrl('');
+        fetchAdminData();
+      } else {
+        alert('Gagal membuat program.');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleUpdateProgram = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProgram) return;
+    try {
+      const res = await fetch(`/api/admin/bug-bounty/${editingProgram.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editingProgram),
+      });
+
+      if (res.ok) {
+        alert('Program berhasil diperbarui!');
+        setEditingProgram(null);
+        fetchAdminData();
+      } else {
+        alert('Gagal memperbarui program.');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteProgram = async (id: string) => {
+    if (!confirm('Hapus program bug bounty ini?')) return;
+    try {
+      const res = await fetch(`/api/admin/bug-bounty/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        alert('Program berhasil dihapus.');
+        fetchAdminData();
+      } else {
+        alert('Gagal menghapus program.');
+      }
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -325,19 +706,19 @@ export default function AdminPage() {
         </div>
 
         {/* Admin Navigation tabs */}
-        <div className="flex border-b border-zinc-900 mb-8 font-mono text-sm gap-2">
+        <div className="flex flex-wrap border-b border-zinc-900 mb-8 font-mono text-xs sm:text-sm gap-2">
           <button
-            onClick={() => setActiveTab('reports')}
-            className={`pb-3 px-4 border-b-2 font-bold transition-all flex items-center gap-2 ${
+            onClick={() => { setActiveTab('reports'); setSelectedCourseForModules(null); }}
+            className={`pb-3 px-3 border-b-2 font-bold transition-all flex items-center gap-2 ${
               activeTab === 'reports' ? 'border-cyber-red text-cyber-red glow-red' : 'border-transparent text-gray-500 hover:text-white'
             }`}
           >
             <ShieldAlert className="h-4 w-4" />
-            Review Bug Reports ({pendingReports.length})
+            Review Bugs ({pendingReports.length})
           </button>
           <button
-            onClick={() => setActiveTab('drafts')}
-            className={`pb-3 px-4 border-b-2 font-bold transition-all flex items-center gap-2 ${
+            onClick={() => { setActiveTab('drafts'); setSelectedCourseForModules(null); }}
+            className={`pb-3 px-3 border-b-2 font-bold transition-all flex items-center gap-2 ${
               activeTab === 'drafts' ? 'border-cyber-purple text-cyber-purple glow-purple' : 'border-transparent text-gray-500 hover:text-white'
             }`}
           >
@@ -345,8 +726,8 @@ export default function AdminPage() {
             Approve Drafts ({pendingDrafts.length})
           </button>
           <button
-            onClick={() => setActiveTab('courses')}
-            className={`pb-3 px-4 border-b-2 font-bold transition-all flex items-center gap-2 ${
+            onClick={() => { setActiveTab('courses'); setSelectedCourseForModules(null); }}
+            className={`pb-3 px-3 border-b-2 font-bold transition-all flex items-center gap-2 ${
               activeTab === 'courses' ? 'border-cyber-blue text-cyber-blue glow-blue' : 'border-transparent text-gray-500 hover:text-white'
             }`}
           >
@@ -354,8 +735,8 @@ export default function AdminPage() {
             Manage Courses
           </button>
           <button
-            onClick={() => setActiveTab('challenges')}
-            className={`pb-3 px-4 border-b-2 font-bold transition-all flex items-center gap-2 ${
+            onClick={() => { setActiveTab('challenges'); setSelectedCourseForModules(null); }}
+            className={`pb-3 px-3 border-b-2 font-bold transition-all flex items-center gap-2 ${
               activeTab === 'challenges' ? 'border-cyber-green text-cyber-green glow-green' : 'border-transparent text-gray-500 hover:text-white'
             }`}
           >
@@ -363,8 +744,17 @@ export default function AdminPage() {
             Manage Challenges
           </button>
           <button
-            onClick={() => setActiveTab('logs')}
-            className={`pb-3 px-4 border-b-2 font-bold transition-all flex items-center gap-2 ${
+            onClick={() => { setActiveTab('programs'); setSelectedCourseForModules(null); }}
+            className={`pb-3 px-3 border-b-2 font-bold transition-all flex items-center gap-2 ${
+              activeTab === 'programs' ? 'border-cyber-blue text-cyber-blue' : 'border-transparent text-gray-500 hover:text-white'
+            }`}
+          >
+            <FileText className="h-4 w-4" />
+            Manage Programs
+          </button>
+          <button
+            onClick={() => { setActiveTab('logs'); setSelectedCourseForModules(null); }}
+            className={`pb-3 px-3 border-b-2 font-bold transition-all flex items-center gap-2 ${
               activeTab === 'logs' ? 'border-amber-500 text-amber-500 glow-amber' : 'border-transparent text-gray-500 hover:text-white'
             }`}
           >
@@ -572,20 +962,168 @@ export default function AdminPage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             {/* List */}
             <div className="lg:col-span-5 space-y-4">
-              <h3 className="font-mono text-xs font-bold text-gray-400 uppercase tracking-widest">Daftar Course Aktif ({courses.length})</h3>
-              <div className="cyber-panel p-4 rounded-xl border border-purple-500/15 max-h-[50vh] overflow-y-auto space-y-2">
-                {courses.map((c) => (
-                  <div
-                    key={c.id}
-                    className="p-3 bg-zinc-950/60 rounded border border-zinc-900 flex justify-between items-center text-xs font-mono"
-                  >
-                    <div>
-                      <span className="font-bold text-white block">{c.title}</span>
-                      <span className="text-[10px] text-gray-500 uppercase">{c.level}</span>
-                    </div>
+              {selectedCourseForModules ? (
+                // Modules lists nested sub-panel
+                <div className="space-y-4 font-mono">
+                  <div className="flex items-center gap-2 text-cyber-blue font-bold text-xs uppercase mb-2">
+                    <button 
+                      onClick={() => { setSelectedCourseForModules(null); setSelectedModuleForLessons(null); }}
+                      className="p-1 hover:text-white"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                    </button>
+                    <span>Modul: {selectedCourseForModules.title}</span>
                   </div>
-                ))}
-              </div>
+
+                  <div className="cyber-panel p-4 rounded-xl border border-cyber-blue/20 bg-zinc-950/40 space-y-3">
+                    <h4 className="text-[10px] text-gray-500 uppercase tracking-widest border-b border-zinc-900 pb-1.5 font-bold">List Modules</h4>
+                    {selectedCourseForModules.modules && selectedCourseForModules.modules.length > 0 ? (
+                      selectedCourseForModules.modules.map((m) => (
+                        <div key={m.id} className="p-3 bg-zinc-950 rounded border border-zinc-900 flex justify-between items-center text-xs">
+                          {editingModule?.id === m.id ? (
+                            <form onSubmit={handleUpdateModule} className="flex gap-2 w-full">
+                              <input 
+                                type="text"
+                                value={editingModule.title}
+                                onChange={(e) => setEditingModule({ ...editingModule, title: e.target.value })}
+                                className="bg-zinc-900 border border-zinc-800 rounded px-2 py-1 text-white flex-1 text-xs"
+                                required
+                              />
+                              <button type="submit" className="text-cyber-green hover:underline">Save</button>
+                              <button type="button" onClick={() => setEditingModule(null)} className="text-cyber-red hover:underline">Cancel</button>
+                            </form>
+                          ) : (
+                            <>
+                              <div className="flex-1">
+                                <span className="text-white font-bold block">{m.title}</span>
+                                <span className="text-[9px] text-gray-500 uppercase">Index: {m.orderIndex} ({m.lessons?.length || 0} Lessons)</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <button 
+                                  onClick={() => setSelectedModuleForLessons(m)}
+                                  className="text-[10px] px-2 py-0.5 rounded bg-cyber-blue/15 text-cyber-blue hover:bg-cyber-blue/25 border border-cyber-blue/25"
+                                >
+                                  Lessons
+                                </button>
+                                <button onClick={() => setEditingModule(m)} className="text-gray-500 hover:text-white"><Edit2 className="h-3.5 w-3.5" /></button>
+                                <button onClick={() => handleDeleteModule(m.id)} className="text-cyber-red hover:text-white"><Trash2 className="h-3.5 w-3.5" /></button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-6 text-xs text-gray-500">Belum ada modul.</div>
+                    )}
+
+                    <form onSubmit={handleCreateModule} className="border-t border-zinc-900 pt-3 flex gap-2">
+                      <input
+                        type="text"
+                        value={newModTitle}
+                        onChange={(e) => setNewModTitle(e.target.value)}
+                        placeholder="Nama modul baru..."
+                        className="bg-zinc-950 border border-zinc-800 rounded p-2 text-white flex-1 text-xs"
+                        required
+                      />
+                      <button type="submit" className="p-2 rounded bg-cyber-blue text-white hover:bg-blue-600"><Plus className="h-4 w-4" /></button>
+                    </form>
+                  </div>
+
+                  {selectedModuleForLessons && (
+                    // Lessons sub-panel
+                    <div className="cyber-panel p-4 rounded-xl border border-cyber-green/20 bg-zinc-950/40 space-y-3">
+                      <div className="flex justify-between items-center border-b border-zinc-900 pb-1.5">
+                        <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Lessons: {selectedModuleForLessons.title}</span>
+                        <button onClick={() => setSelectedModuleForLessons(null)} className="text-[9px] text-cyber-red hover:underline">Close</button>
+                      </div>
+
+                      {selectedModuleForLessons.lessons && selectedModuleForLessons.lessons.length > 0 ? (
+                        selectedModuleForLessons.lessons.map((l) => (
+                          <div key={l.id} className="p-3 bg-zinc-950 rounded border border-zinc-900 flex justify-between items-center text-xs">
+                            <div className="flex-1 pr-2">
+                              <span className="text-white font-bold block">{l.title}</span>
+                              <span className="text-[9px] text-gray-500 uppercase">Index: {l.orderIndex}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button onClick={() => setEditingLesson(l)} className="text-gray-500 hover:text-white"><Edit2 className="h-3.5 w-3.5" /></button>
+                              <button onClick={() => handleDeleteLesson(l.id)} className="text-cyber-red hover:text-white"><Trash2 className="h-3.5 w-3.5" /></button>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-6 text-xs text-gray-500">Belum ada pelajaran.</div>
+                      )}
+
+                      <form onSubmit={handleCreateLesson} className="border-t border-zinc-900 pt-3 space-y-2">
+                        <input
+                          type="text"
+                          value={newLesTitle}
+                          onChange={(e) => setNewLesTitle(e.target.value)}
+                          placeholder="Judul pelajaran..."
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-white text-xs"
+                          required
+                        />
+                        <textarea
+                          value={newLesContent}
+                          onChange={(e) => setNewLesContent(e.target.value)}
+                          placeholder="Konten pelajaran (Markdown)..."
+                          rows={3}
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-white text-xs resize-none"
+                          required
+                        />
+                        <input
+                          type="text"
+                          value={newLesVideo}
+                          onChange={(e) => setNewLesVideo(e.target.value)}
+                          placeholder="Video URL (optional)..."
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-white text-xs"
+                        />
+                        <button type="submit" className="w-full py-1.5 rounded bg-cyber-green text-cyber-bg font-bold text-xs hover:bg-cyber-green-dim">
+                          Add Lesson
+                        </button>
+                      </form>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                // Courses active lists
+                <div className="space-y-4">
+                  <h3 className="font-mono text-xs font-bold text-gray-400 uppercase tracking-widest">Daftar Course Aktif ({courses.length})</h3>
+                  <div className="cyber-panel p-4 rounded-xl border border-purple-500/15 max-h-[50vh] overflow-y-auto space-y-2 font-mono">
+                    {courses.map((c) => (
+                      <div
+                        key={c.id}
+                        className="p-3.5 bg-zinc-950/60 rounded border border-zinc-900 flex justify-between items-center text-xs"
+                      >
+                        <div className="flex-1 pr-2">
+                          <span className="font-bold text-white block">{c.title}</span>
+                          <span className="text-[9px] text-gray-500 uppercase">{c.level} ({c.modules?.length || 0} Modules)</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button 
+                            onClick={() => setSelectedCourseForModules(c)}
+                            className="text-[10px] px-2 py-1 rounded bg-purple-500/10 text-purple-400 border border-purple-500/25 hover:bg-purple-500/20"
+                          >
+                            Modules
+                          </button>
+                          <button 
+                            onClick={() => setEditingCourse(c)}
+                            className="p-1 hover:text-white text-gray-500"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteCourse(c.id)}
+                            className="p-1 hover:text-white text-cyber-red"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Create form */}
@@ -645,15 +1183,29 @@ export default function AdminPage() {
             {/* List */}
             <div className="lg:col-span-5 space-y-4">
               <h3 className="font-mono text-xs font-bold text-gray-400 uppercase tracking-widest">Daftar Tantangan CTF ({challenges.length})</h3>
-              <div className="cyber-panel p-4 rounded-xl border border-purple-500/15 max-h-[50vh] overflow-y-auto space-y-2">
+              <div className="cyber-panel p-4 rounded-xl border border-purple-500/15 max-h-[50vh] overflow-y-auto space-y-2 font-mono">
                 {challenges.map((ch) => (
                   <div
                     key={ch.id}
-                    className="p-3 bg-zinc-950/60 rounded border border-zinc-900 flex justify-between items-center text-xs font-mono"
+                    className="p-3 bg-zinc-950/60 rounded border border-zinc-900 flex justify-between items-center text-xs"
                   >
-                    <div>
+                    <div className="flex-1 pr-2">
                       <span className="font-bold text-white block">{ch.title}</span>
-                      <span className="text-[10px] text-gray-500 uppercase">{ch.category} ({ch.point} pts)</span>
+                      <span className="text-[9px] text-gray-500 uppercase">{ch.category} ({ch.point} pts)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => setEditingChallenge(ch)}
+                        className="p-1 hover:text-white text-gray-500"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteChallenge(ch.id)}
+                        className="p-1 hover:text-white text-cyber-red"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -690,7 +1242,7 @@ export default function AdminPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-3 gap-4">
                     <div>
                       <label className="text-gray-500 block mb-1">Kategori</label>
                       <select
@@ -716,6 +1268,16 @@ export default function AdminPage() {
                         <option value="MEDIUM">MEDIUM</option>
                         <option value="HARD">HARD</option>
                       </select>
+                    </div>
+                    <div>
+                      <label className="text-gray-500 block mb-1">ID Pelajaran (Optional)</label>
+                      <input 
+                        type="text"
+                        value={newChLessonId}
+                        onChange={(e) => setNewChLessonId(e.target.value)}
+                        placeholder="UUID Pelajaran..."
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-white placeholder-gray-700"
+                      />
                     </div>
                   </div>
 
@@ -778,7 +1340,129 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Tab 5: AUDIT TRAIL LOGS */}
+        {/* Tab 5: MANAGE PROGRAMS */}
+        {activeTab === 'programs' && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {/* List */}
+            <div className="lg:col-span-5 space-y-4">
+              <h3 className="font-mono text-xs font-bold text-gray-400 uppercase tracking-widest">Daftar Bug Program ({programs.length})</h3>
+              <div className="cyber-panel p-4 rounded-xl border border-purple-500/15 max-h-[50vh] overflow-y-auto space-y-2 font-mono">
+                {programs.map((p) => (
+                  <div
+                    key={p.id}
+                    className="p-3 bg-zinc-950/60 rounded border border-zinc-900 flex justify-between items-center text-xs"
+                  >
+                    <div className="flex-1 pr-2">
+                      <span className="font-bold text-white block">{p.title}</span>
+                      <span className="text-[9px] text-gray-500 uppercase">Reward: {p.rewardPoint} pts ({p.isActive ? 'Active' : 'Inactive'})</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => setEditingProgram(p)}
+                        className="p-1 hover:text-white text-gray-500"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteProgram(p.id)}
+                        className="p-1 hover:text-white text-cyber-red"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Create form */}
+            <div className="lg:col-span-7">
+              <div className="cyber-panel p-6 rounded-2xl border border-purple-500/15 space-y-4">
+                <h3 className="font-mono text-sm font-bold text-white border-b border-zinc-900 pb-3">Tambah Program Bug Bounty Baru</h3>
+                <form onSubmit={handleCreateProgram} className="space-y-4 font-mono text-xs">
+                  <div>
+                    <label className="text-gray-500 block mb-1">Nama Program / Aplikasi</label>
+                    <input
+                      type="text"
+                      value={newProgTitle}
+                      onChange={(e) => setNewProgTitle(e.target.value)}
+                      placeholder="e.g. CyberShop E-Commerce"
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded p-2.5 text-white placeholder-gray-700"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="text-gray-500 block mb-1">Deskripsi Target</label>
+                    <textarea
+                      value={newProgDesc}
+                      onChange={(e) => setNewProgDesc(e.target.value)}
+                      placeholder="Uraikan detail program..."
+                      rows={2}
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded p-2.5 text-white placeholder-gray-700 resize-none"
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-gray-500 block mb-1">Scope</label>
+                      <textarea
+                        value={newProgScope}
+                        onChange={(e) => setNewProgScope(e.target.value)}
+                        placeholder="Daftar domain/API yang diizinkan..."
+                        rows={2}
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-white placeholder-gray-700 resize-none"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="text-gray-500 block mb-1">Out of Scope</label>
+                      <textarea
+                        value={newProgOutScope}
+                        onChange={(e) => setNewProgOutScope(e.target.value)}
+                        placeholder="Jenis pengujian yang dilarang..."
+                        rows={2}
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-white placeholder-gray-700 resize-none"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-gray-500 block mb-1">Lab URL Route</label>
+                      <input
+                        type="text"
+                        value={newProgLabUrl}
+                        onChange={(e) => setNewProgLabUrl(e.target.value)}
+                        placeholder="e.g. /labs/cybershop"
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-white placeholder-gray-700"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="text-gray-500 block mb-1">Maksimum Reward Point</label>
+                      <input
+                        type="number"
+                        value={newProgPoints}
+                        onChange={(e) => setNewProgPoints(e.target.value)}
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-white"
+                        min={10}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="submit"
+                    className="w-full py-2.5 rounded bg-cyber-blue text-white font-bold transition-all border border-cyber-blue/40 cursor-pointer"
+                  >
+                    Simpan & Aktifkan Program Bug Bounty
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 6: AUDIT TRAIL LOGS */}
         {activeTab === 'logs' && (
           <div className="cyber-panel p-6 rounded-2xl border border-purple-500/15 font-mono text-xs">
             <h3 className="text-sm font-bold text-white mb-4 border-b border-zinc-900 pb-3 flex justify-between items-center">
@@ -815,8 +1499,8 @@ export default function AdminPage() {
                       return (
                         <tr key={log.id} className="hover:bg-zinc-900/10 transition-colors">
                           <td className="py-3.5 font-medium text-white pr-2">
-                            <div>{log.admin.name}</div>
-                            <div className="text-[9px] text-gray-500">{log.admin.email}</div>
+                            <div>{log.admin?.name}</div>
+                            <div className="text-[9px] text-gray-500">{log.admin?.email}</div>
                           </td>
                           <td className="py-3.5">
                             <span className={`text-[9px] px-2 py-0.5 rounded border uppercase font-bold ${actionColors[log.action as keyof typeof actionColors] || 'bg-zinc-800 text-gray-300 border-zinc-700'}`}>
@@ -848,6 +1532,273 @@ export default function AdminPage() {
           </div>
         )}
       </main>
+
+      {/* Edit Course Modal */}
+      {editingCourse && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 font-mono text-xs">
+          <div className="cyber-panel p-6 rounded-2xl border border-cyber-blue/30 bg-cyber-bg max-w-lg w-full space-y-4">
+            <h3 className="text-sm font-bold text-cyber-blue border-b border-zinc-900 pb-2">Edit Course</h3>
+            <form onSubmit={handleUpdateCourse} className="space-y-4">
+              <div>
+                <label className="text-gray-500 block mb-1">Judul Course</label>
+                <input
+                  type="text"
+                  value={editingCourse.title}
+                  onChange={(e) => setEditingCourse({ ...editingCourse, title: e.target.value })}
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-white"
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-gray-500 block mb-1">Deskripsi</label>
+                <textarea
+                  value={editingCourse.description}
+                  onChange={(e) => setEditingCourse({ ...editingCourse, description: e.target.value })}
+                  rows={4}
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-white resize-none"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-gray-500 block mb-1">Level</label>
+                  <select
+                    value={editingCourse.level}
+                    onChange={(e) => setEditingCourse({ ...editingCourse, level: e.target.value })}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-white"
+                  >
+                    <option value="BEGINNER">BEGINNER</option>
+                    <option value="INTERMEDIATE">INTERMEDIATE</option>
+                    <option value="ADVANCED">ADVANCED</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-gray-500 block mb-1">Status Publikasi</label>
+                  <select
+                    value={editingCourse.isPublished ? 'TRUE' : 'FALSE'}
+                    onChange={(e) => setEditingCourse({ ...editingCourse, isPublished: e.target.value === 'TRUE' })}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-white"
+                  >
+                    <option value="TRUE">PUBLISHED</option>
+                    <option value="FALSE">UNPUBLISHED</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button type="submit" className="flex-1 py-2 rounded bg-cyber-blue text-white font-bold hover:bg-blue-600">
+                  Update Course
+                </button>
+                <button type="button" onClick={() => setEditingCourse(null)} className="px-4 py-2 rounded bg-zinc-900 border border-zinc-800 text-gray-400 hover:text-white">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Challenge Modal */}
+      {editingChallenge && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 font-mono text-xs overflow-y-auto">
+          <div className="cyber-panel p-6 rounded-2xl border border-cyber-green/30 bg-cyber-bg max-w-lg w-full space-y-4 my-8">
+            <h3 className="text-sm font-bold text-cyber-green border-b border-zinc-900 pb-2">Edit Challenge</h3>
+            <form onSubmit={handleUpdateChallenge} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-gray-500 block mb-1">Judul Soal</label>
+                  <input
+                    type="text"
+                    value={editingChallenge.title}
+                    onChange={(e) => setEditingChallenge({ ...editingChallenge, title: e.target.value })}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-white"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-gray-500 block mb-1">Poin</label>
+                  <input
+                    type="number"
+                    value={editingChallenge.point}
+                    onChange={(e) => setEditingChallenge({ ...editingChallenge, point: parseInt(e.target.value) })}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-white"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-gray-500 block mb-1">Kategori</label>
+                  <select
+                    value={editingChallenge.category}
+                    onChange={(e) => setEditingChallenge({ ...editingChallenge, category: e.target.value })}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-white"
+                  >
+                    <option value="WEB">WEB EXPLOITATION</option>
+                    <option value="CRYPTO">CRYPTOGRAPHY</option>
+                    <option value="FORENSICS">FORENSICS</option>
+                    <option value="OSINT">OSINT</option>
+                    <option value="MISC">MISCELLANEOUS</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-gray-500 block mb-1">Kesulitan</label>
+                  <select
+                    value={editingChallenge.difficulty}
+                    onChange={(e) => setEditingChallenge({ ...editingChallenge, difficulty: e.target.value })}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-white"
+                  >
+                    <option value="EASY">EASY</option>
+                    <option value="MEDIUM">MEDIUM</option>
+                    <option value="HARD">HARD</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="text-gray-500 block mb-1">Deskripsi</label>
+                <textarea
+                  value={editingChallenge.description}
+                  onChange={(e) => setEditingChallenge({ ...editingChallenge, description: e.target.value })}
+                  rows={3}
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-white resize-none"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-cyber-green block mb-1 font-bold">Kunci Flag (Biarkan kosong jika tidak diubah)</label>
+                  <input
+                    type="text"
+                    value={editingChallenge.flag || ''}
+                    onChange={(e) => setEditingChallenge({ ...editingChallenge, flag: e.target.value })}
+                    placeholder="Masukkan flag baru..."
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-gray-500 block mb-1">Petunjuk / Hint</label>
+                  <input
+                    type="text"
+                    value={editingChallenge.hint || ''}
+                    onChange={(e) => setEditingChallenge({ ...editingChallenge, hint: e.target.value })}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-white"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-gray-500 block mb-1">Writeup Pembahasan</label>
+                <textarea
+                  value={editingChallenge.solution || ''}
+                  onChange={(e) => setEditingChallenge({ ...editingChallenge, solution: e.target.value })}
+                  rows={2}
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-white resize-none"
+                />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button type="submit" className="flex-1 py-2 rounded bg-cyber-green text-cyber-bg font-bold hover:bg-cyber-green-dim">
+                  Update Challenge
+                </button>
+                <button type="button" onClick={() => setEditingChallenge(null)} className="px-4 py-2 rounded bg-zinc-900 border border-zinc-800 text-gray-400 hover:text-white">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Program Modal */}
+      {editingProgram && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 font-mono text-xs overflow-y-auto">
+          <div className="cyber-panel p-6 rounded-2xl border border-cyber-blue/30 bg-cyber-bg max-w-lg w-full space-y-4">
+            <h3 className="text-sm font-bold text-cyber-blue border-b border-zinc-900 pb-2">Edit Bug Bounty Program</h3>
+            <form onSubmit={handleUpdateProgram} className="space-y-4">
+              <div>
+                <label className="text-gray-500 block mb-1">Nama Program</label>
+                <input
+                  type="text"
+                  value={editingProgram.title}
+                  onChange={(e) => setEditingProgram({ ...editingProgram, title: e.target.value })}
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-white"
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-gray-500 block mb-1">Deskripsi</label>
+                <textarea
+                  value={editingProgram.description}
+                  onChange={(e) => setEditingProgram({ ...editingProgram, description: e.target.value })}
+                  rows={2}
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-white resize-none"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-gray-500 block mb-1">Scope</label>
+                  <textarea
+                    value={editingProgram.scope}
+                    onChange={(e) => setEditingProgram({ ...editingProgram, scope: e.target.value })}
+                    rows={2}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-white resize-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-gray-500 block mb-1">Out of Scope</label>
+                  <textarea
+                    value={editingProgram.outOfScope}
+                    onChange={(e) => setEditingProgram({ ...editingProgram, outOfScope: e.target.value })}
+                    rows={2}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-white resize-none"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="col-span-2">
+                  <label className="text-gray-500 block mb-1">Lab URL Route</label>
+                  <input
+                    type="text"
+                    value={editingProgram.labUrl}
+                    onChange={(e) => setEditingProgram({ ...editingProgram, labUrl: e.target.value })}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-white"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-gray-500 block mb-1">Reward Poin</label>
+                  <input
+                    type="number"
+                    value={editingProgram.rewardPoint}
+                    onChange={(e) => setEditingProgram({ ...editingProgram, rewardPoint: parseInt(e.target.value) })}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-white"
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-gray-500 block mb-1">Status Keaktifan</label>
+                <select
+                  value={editingProgram.isActive ? 'TRUE' : 'FALSE'}
+                  onChange={(e) => setEditingProgram({ ...editingProgram, isActive: e.target.value === 'TRUE' })}
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-white"
+                >
+                  <option value="TRUE">ACTIVE</option>
+                  <option value="FALSE">INACTIVE</option>
+                </select>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button type="submit" className="flex-1 py-2 rounded bg-cyber-blue text-white font-bold hover:bg-blue-600">
+                  Update Program
+                </button>
+                <button type="button" onClick={() => setEditingProgram(null)} className="px-4 py-2 rounded bg-zinc-900 border border-zinc-800 text-gray-400 hover:text-white">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

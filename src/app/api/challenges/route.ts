@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { verifyToken } from '@/lib/auth';
 import { hashPassword } from '@/lib/password'; // Using standard bcrypt hash for flags too
+import { logAdminAction } from '@/lib/audit';
 
 export async function GET(request: NextRequest) {
   try {
@@ -92,6 +93,14 @@ export async function POST(request: NextRequest) {
         createdBy: session.id,
       },
     });
+
+    await logAdminAction(
+      session.id,
+      'CREATE_CHALLENGE',
+      'Challenge',
+      challenge.id,
+      `Created challenge "${title}" (Category: ${category}, Difficulty: ${difficulty}, Points: ${point})`
+    );
 
     return NextResponse.json({ challenge }, { status: 201 });
   } catch (error) {

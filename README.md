@@ -16,6 +16,16 @@ Aplikasi ini dibangun menggunakan framework **Next.js (App Router)**, **Prisma O
 
 ---
 
+## 🔒 Mekanisme Pertahanan & Keamanan Kode (Secure Coding)
+
+* **Validasi Skema Masukan**: Validasi Zod digunakan untuk memastikan struktur, tipe data, panjang input, dan enum request sesuai aturan sebelum diproses oleh API.
+* **Pencegahan SQL Injection**: Diperkuat melalui penggunaan Prisma ORM dan penghindaran raw query tidak aman, sehingga database SQLite terproteksi dari bypass otentikasi.
+* **Mitigasi XSS**: Risiko XSS dikurangi melalui output escaping bawaan React, validasi input, dan rencana penerapan security headers/CSP.
+* **Security Headers**: HTTP Response Headers dikonfigurasi pada `next.config.ts` untuk mengaktifkan `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, serta kebijakan Referrer & Permissions.
+* **Rate Limiting**: Throttling masukan di-enforce menggunakan algoritma *token-bucket* in-memory untuk membatasi pengiriman formulir pada rute API kritis (Login, Registrasi, Submisi Flag, Pembuatan Soal, dan Laporan Bug).
+
+---
+
 ## 🛠️ Panduan Instalasi & Menjalankan Aplikasi
 
 Ikuti langkah-langkah di bawah ini untuk menjalankan CTFForge di lingkungan lokal Anda:
