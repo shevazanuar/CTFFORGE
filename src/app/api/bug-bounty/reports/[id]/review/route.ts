@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import prisma from '@/lib/db';
 import { verifyToken } from '@/lib/auth';
+import { logAdminAction } from '@/lib/audit';
+
+const reviewSchema = z.object({
+  status: z.enum(['VALID', 'DUPLICATE', 'INFORMATIVE', 'REJECTED']),
+  pointAwarded: z.coerce.number().nonnegative().default(0),
+});
 
 export async function POST(
   request: NextRequest,
@@ -18,14 +25,17 @@ export async function POST(
     }
 
     const { id: reportId } = await params;
-    const { status, pointAwarded } = await request.json();
+    const body = await request.json();
+    const result = reviewSchema.safeParse(body);
 
-    if (!status) {
+    if (!result.success) {
       return NextResponse.json(
-        { error: 'Status review wajib diisi.' },
+        { error: result.error.issues[0].message },
         { status: 400 }
       );
     }
+
+    const { status, pointAwarded } = result.data;
 
     // Fetch bug report
     const report = await prisma.bugReport.findUnique({
@@ -43,7 +53,7 @@ export async function POST(
     }
 
     const prevStatus = report.status;
-    const pointsToAward = parseInt(pointAwarded || 0);
+    const pointsToAward = pointAwarded;
 
     // Update report
     const updatedReport = await prisma.bugReport.update({
@@ -108,6 +118,15 @@ export async function POST(
         }
       }
     }
+
+    // Log the administrative action to the audit logs
+    await logAdminAction(
+      session.id,
+      status === 'VALID' ? 'APPROVE_BUG_REPORT' : 'REJECT_BUG_REPORT',
+      'BugReport',
+      report.id,
+      `Reviewed bug report "${report.title}" by user ID ${report.userId}. Status set to ${status}. Points awarded: ${pointsToAward}.`
+    );
 
     return NextResponse.json({
       report: updatedReport,

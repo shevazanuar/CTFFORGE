@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import prisma from '@/lib/db';
 import { verifyToken } from '@/lib/auth';
+import { logAdminAction } from '@/lib/audit';
+
+const publishSchema = z.object({
+  status: z.enum(['APPROVED', 'REJECTED']),
+});
 
 export async function POST(
   request: NextRequest,
@@ -18,14 +24,17 @@ export async function POST(
     }
 
     const { id: draftId } = await params;
-    const { status } = await request.json(); // "APPROVED" or "REJECTED"
+    const body = await request.json();
+    const result = publishSchema.safeParse(body);
 
-    if (!status || (status !== 'APPROVED' && status !== 'REJECTED')) {
+    if (!result.success) {
       return NextResponse.json(
-        { error: 'Status review tidak valid (harus APPROVED atau REJECTED).' },
+        { error: result.error.issues[0].message },
         { status: 400 }
       );
     }
+
+    const { status } = result.data;
 
     // Fetch draft
     const draft = await prisma.generatedChallengeDraft.findUnique({
@@ -72,6 +81,15 @@ export async function POST(
         },
       });
 
+      // Log admin action
+      await logAdminAction(
+        session.id,
+        'PUBLISH_DRAFT',
+        'GeneratedChallengeDraft',
+        draftId,
+        `Approved and published challenge draft "${draft.generatedTitle}" (Category: ${draft.category}, Difficulty: ${draft.difficulty})`
+      );
+
       return NextResponse.json({
         message: 'Draft disetujui dan berhasil dipublikasikan!',
         draft: updatedDraft,
@@ -86,6 +104,15 @@ export async function POST(
           reviewedBy: session.id,
         },
       });
+
+      // Log admin action
+      await logAdminAction(
+        session.id,
+        'REJECT_DRAFT',
+        'GeneratedChallengeDraft',
+        draftId,
+        `Rejected challenge draft "${draft.generatedTitle}"`
+      );
 
       return NextResponse.json({
         message: 'Draft ditolak.',

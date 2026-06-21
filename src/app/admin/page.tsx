@@ -49,11 +49,23 @@ interface Draft {
   creator: { name: string };
 }
 
+interface AdminLog {
+  id: string;
+  adminId: string;
+  action: string;
+  targetType: string;
+  targetId: string;
+  description: string;
+  createdAt: string;
+  admin: { name: string; email: string };
+}
+
 export default function AdminPage() {
   const { user } = useAuth();
   
-  const [activeTab, setActiveTab] = useState<'reports' | 'drafts' | 'courses' | 'challenges'>('reports');
+  const [activeTab, setActiveTab] = useState<'reports' | 'drafts' | 'courses' | 'challenges' | 'logs'>('reports');
   const [loading, setLoading] = useState(true);
+  const [adminLogs, setAdminLogs] = useState<AdminLog[]>([]);
   
   // Dashboard stats
   const [stats, setStats] = useState({
@@ -102,6 +114,7 @@ export default function AdminPage() {
       const coursesRes = await fetch('/api/courses');
       const chRes = await fetch('/api/challenges');
       const lbRes = await fetch('/api/leaderboard');
+      const logsRes = await fetch('/api/admin/logs');
 
       if (reportsRes.ok && draftsRes.ok && coursesRes.ok && chRes.ok && lbRes.ok) {
         const reportsData = await reportsRes.json();
@@ -117,6 +130,11 @@ export default function AdminPage() {
         setPendingDrafts(pDrafts);
         setCourses(coursesData.courses);
         setChallenges(chData.challenges);
+
+        if (logsRes.ok) {
+          const logsData = await logsRes.json();
+          setAdminLogs(logsData.logs);
+        }
 
         setStats({
           usersCount: lbData.leaderboard.length,
@@ -343,6 +361,15 @@ export default function AdminPage() {
           >
             <Target className="h-4 w-4" />
             Manage Challenges
+          </button>
+          <button
+            onClick={() => setActiveTab('logs')}
+            className={`pb-3 px-4 border-b-2 font-bold transition-all flex items-center gap-2 ${
+              activeTab === 'logs' ? 'border-amber-500 text-amber-500 glow-amber' : 'border-transparent text-gray-500 hover:text-white'
+            }`}
+          >
+            <FileText className="h-4 w-4" />
+            Audit Logs ({adminLogs.length})
           </button>
         </div>
 
@@ -748,6 +775,76 @@ export default function AdminPage() {
                 </form>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Tab 5: AUDIT TRAIL LOGS */}
+        {activeTab === 'logs' && (
+          <div className="cyber-panel p-6 rounded-2xl border border-purple-500/15 font-mono text-xs">
+            <h3 className="text-sm font-bold text-white mb-4 border-b border-zinc-900 pb-3 flex justify-between items-center">
+              <span>Admin Audit Trail Logs</span>
+              <button
+                onClick={fetchAdminData}
+                className="text-[10px] text-cyber-blue hover:text-white flex items-center gap-1.5 transition-colors border border-cyber-blue/30 px-2.5 py-1 rounded bg-cyber-blue/5 hover:bg-cyber-blue/10 cursor-pointer"
+              >
+                Refresh Logs
+              </button>
+            </h3>
+
+            {adminLogs.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-gray-400">
+                  <thead>
+                    <tr className="border-b border-zinc-900 text-gray-500 uppercase tracking-wider text-[10px]">
+                      <th className="pb-3 font-semibold">Admin</th>
+                      <th className="pb-3 font-semibold">Action</th>
+                      <th className="pb-3 font-semibold">Target (Type/ID)</th>
+                      <th className="pb-3 font-semibold">Description</th>
+                      <th className="pb-3 font-semibold text-right">Timestamp</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-900/60 font-mono">
+                    {adminLogs.map((log) => {
+                      const actionColors = {
+                        APPROVE_BUG_REPORT: 'bg-cyber-green/10 text-cyber-green border-cyber-green/20',
+                        REJECT_BUG_REPORT: 'bg-cyber-red/10 text-cyber-red border-cyber-red/20',
+                        PUBLISH_DRAFT: 'bg-cyber-purple/10 text-cyber-purple border-cyber-purple/20',
+                        REJECT_DRAFT: 'bg-zinc-800 text-gray-400 border-zinc-700',
+                      };
+
+                      return (
+                        <tr key={log.id} className="hover:bg-zinc-900/10 transition-colors">
+                          <td className="py-3.5 font-medium text-white pr-2">
+                            <div>{log.admin.name}</div>
+                            <div className="text-[9px] text-gray-500">{log.admin.email}</div>
+                          </td>
+                          <td className="py-3.5">
+                            <span className={`text-[9px] px-2 py-0.5 rounded border uppercase font-bold ${actionColors[log.action as keyof typeof actionColors] || 'bg-zinc-800 text-gray-300 border-zinc-700'}`}>
+                              {log.action}
+                            </span>
+                          </td>
+                          <td className="py-3.5">
+                            <div className="text-[10px] text-gray-300 font-bold">{log.targetType}</div>
+                            <div className="text-[9px] text-gray-500 font-normal">{log.targetId.slice(0, 8)}...</div>
+                          </td>
+                          <td className="py-3.5 text-gray-300 max-w-[300px] whitespace-pre-wrap">{log.description}</td>
+                          <td className="py-3.5 text-right text-gray-500 text-[10px]">
+                            {new Date(log.createdAt).toLocaleString('id-ID', {
+                              dateStyle: 'short',
+                              timeStyle: 'medium'
+                            })}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-center py-12 border border-dashed border-zinc-900 rounded-lg text-xs text-gray-500">
+                Belum ada log aktivitas admin tercatat.
+              </div>
+            )}
           </div>
         )}
       </main>
