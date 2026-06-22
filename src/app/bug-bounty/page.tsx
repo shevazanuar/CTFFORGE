@@ -70,6 +70,20 @@ export default function BugBountyPage() {
   const [bankLog, setBankLog] = useState<string[]>(['Sistem Bank Aktif. Saldo Awal: Rp 1.000.000']);
   const [bankEvidence, setBankEvidence] = useState<string | null>(null);
 
+  // Cloud Storage (CyberDrive) Lab states
+  const [cyberDriveFilePath, setCyberDriveFilePath] = useState('avatar.png');
+  const [cyberDriveLog, setCyberDriveLog] = useState<string[]>(['Sistem CyberDrive Aktif. Direktori: /var/www/html/public']);
+  const [cyberDriveEvidence, setCyberDriveEvidence] = useState<string | null>(null);
+
+  // Copy state
+  const [copiedText, setCopiedText] = useState<string | null>(null);
+
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedText(text);
+    setTimeout(() => setCopiedText(null), 2000);
+  };
+
   const fetchProgramsAndReports = async () => {
     try {
       const progRes = await fetch('/api/bug-bounty');
@@ -111,6 +125,10 @@ export default function BugBountyPage() {
     setBankBalance(1000);
     setBankLog(['Sistem Bank Aktif. Saldo Awal: Rp 1.000.000']);
     setBankEvidence(null);
+
+    setCyberDriveFilePath('avatar.png');
+    setCyberDriveLog(['Sistem CyberDrive Aktif. Direktori: /var/www/html/public']);
+    setCyberDriveEvidence(null);
   };
 
   const handleFileReportSubmit = async (e: React.FormEvent) => {
@@ -234,6 +252,39 @@ export default function BugBountyPage() {
     }
 
     setBankLog(logs);
+  };
+
+  // Cloud Storage Fetch Path Traversal lab logic
+  const handleCyberDriveFetch = () => {
+    const logs = [...cyberDriveLog];
+    const path = cyberDriveFilePath.trim();
+
+    logs.push(`GET /api/v1/files/download?path=${path} HTTP/1.1`);
+    logs.push(`Host: api.cyberdrive.local`);
+
+    const hasPathTraversal = path.includes('..') && (path.includes('/') || path.includes('\\'));
+
+    if (hasPathTraversal) {
+      logs.push(`Vulnerability Triggered: Path Traversal / Directory Traversal.`);
+      logs.push(`Membaca file di luar root directory...`);
+      logs.push(`Sukses membaca file /etc/passwd:`);
+      logs.push(`root:x:0:0:root:/root:/bin/bash`);
+      logs.push(`bin:x:1:1:bin:/bin:/sbin/nologin`);
+      logs.push(`flag:x:1001:1001:CTF{path_traversal_cloud_storage_secret}::/home/flag:/bin/bash`);
+      
+      const evidenceCode = 'EVIDENCE-CYBERDRIVE-PATH-TRAVERSAL';
+      setCyberDriveEvidence(evidenceCode);
+      setEvidence(evidenceCode); // prefill evidence field
+      logs.push(`EVIDENCE CODE FOUND: ${evidenceCode}`);
+    } else if (path === 'avatar.png' || path === 'index.html' || path === 'style.css') {
+      logs.push(`Membaca berkas public: ${path}`);
+      logs.push(`[Binary Data / Text Content of ${path}]`);
+      logs.push(`Membaca berkas selesai.`);
+    } else {
+      logs.push(`Error: Berkas '${path}' tidak ditemukan di direktori public.`);
+    }
+
+    setCyberDriveLog(logs);
   };
 
   return (
@@ -486,11 +537,59 @@ export default function BugBountyPage() {
                         </div>
                       )}
 
+                      {/* Cloud Storage API (CyberDrive) Sandbox Lab interface */}
+                      {selectedProgram.title === 'Cloud Storage API (CyberDrive)' && (
+                        <div className="space-y-4">
+                          <div className="p-4 bg-cyber-bg border border-zinc-800 rounded-lg">
+                            <div className="flex justify-between items-center mb-3">
+                              <span className="font-bold text-white">CyberDrive Cloud Storage Portal</span>
+                              <span className="text-xs text-cyber-blue font-bold">Direktori Aktif: /var/www/html/public</span>
+                            </div>
+
+                            <div className="space-y-3 mb-3">
+                              <div>
+                                <label className="text-[10px] text-gray-500 block mb-1">Nama / Jalur Berkas (File Path)</label>
+                                <input
+                                  type="text"
+                                  value={cyberDriveFilePath}
+                                  onChange={(e) => setCyberDriveFilePath(e.target.value)}
+                                  placeholder="e.g. avatar.png"
+                                  className="w-full bg-zinc-950 border border-zinc-900 rounded p-1.5 text-white"
+                                />
+                              </div>
+                            </div>
+
+                            <button
+                              onClick={handleCyberDriveFetch}
+                              className="w-full py-2 bg-cyber-blue text-white font-bold rounded hover:bg-sky-700 transition-all text-xs cursor-pointer"
+                            >
+                              Kirim Permintaan Unduh File
+                            </button>
+                          </div>
+
+                          {/* Terminal Output logs */}
+                          <div className="p-3 bg-zinc-950 border border-zinc-800 rounded-lg font-mono text-[10px] text-gray-400 max-h-40 overflow-y-auto space-y-1">
+                            <div className="text-gray-600 border-b border-zinc-900 pb-1 mb-1">CONSOLE LOGS & HTTP REQUEST</div>
+                            {cyberDriveLog.map((log, i) => (
+                              <p key={i} className={log.includes('Sukses') || log.includes('flag') ? 'text-cyber-green font-bold' : log.includes('Vulnerability') ? 'text-cyber-purple font-bold' : ''}>
+                                {log}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Evidence code copied alert */}
                       {evidence && (
                         <div className="p-2.5 bg-cyber-purple/10 border border-cyber-purple/35 text-cyber-purple rounded font-bold text-[10px] flex justify-between items-center select-all">
                           <span>Evidence Code: {evidence}</span>
-                          <span className="text-[8px] text-gray-500 uppercase">Gunakan kode ini dalam formulir laporan</span>
+                          <button
+                            type="button"
+                            onClick={() => handleCopy(evidence)}
+                            className="text-[8px] text-cyber-purple hover:text-white bg-cyber-purple/10 hover:bg-cyber-purple/20 px-2 py-1 rounded border border-cyber-purple/30 uppercase cursor-pointer transition-all"
+                          >
+                            {copiedText === evidence ? 'Tersalin!' : 'Salin Bukti'}
+                          </button>
                         </div>
                       )}
                     </div>

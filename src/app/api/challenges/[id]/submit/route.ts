@@ -80,7 +80,17 @@ export async function POST(
     }
 
     // Verify flag
-    const isCorrect = await comparePassword(flag.trim(), challenge.flagHash);
+    let isCorrect = false;
+    try {
+      if (challenge.flagHash.startsWith('$2')) {
+        isCorrect = await comparePassword(flag.trim(), challenge.flagHash);
+      } else {
+        isCorrect = flag.trim() === challenge.flagHash.trim();
+      }
+    } catch (err) {
+      // Fallback to plaintext comparison in case of hashing issues
+      isCorrect = flag.trim() === challenge.flagHash.trim();
+    }
 
     if (isCorrect) {
       // 1. Save CORRECT submission

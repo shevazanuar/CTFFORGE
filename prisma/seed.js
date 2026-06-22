@@ -256,6 +256,456 @@ Kriptografi modern beroperasi pada tingkat biner (bit 0 dan 1) serta menggunakan
     },
   });
 
+  const modHashing = await prisma.module.create({
+    data: {
+      courseId: courseCrypto.id,
+      title: 'Hashing & Integritas Data',
+      orderIndex: 2,
+    },
+  });
+
+  const lesHashingIntro = await prisma.lesson.create({
+    data: {
+      moduleId: modHashing.id,
+      title: 'Apa itu Hashing?',
+      content: `### Pengenalan Fungsi Hash
+
+**Hash function** adalah algoritma matematika yang mengubah input data dengan panjang variabel menjadi output biner dengan panjang tetap (fixed-length). Hasil output ini disebut **hash value**, **message digest**, atau cukup **hash**.
+
+#### Karakteristik Utama Fungsi Hash:
+1. **Deterministic**: Input yang sama akan selalu menghasilkan output hash yang persis sama.
+2. **One-Way (Pre-image Resistance)**: Sangat sulit (secara komputasi tidak mungkin) untuk mengembalikan hash value kembali menjadi input asli.
+3. **Collision Resistance**: Sangat sulit menemukan dua input berbeda yang menghasilkan hash value yang sama.
+4. **Avalanche Effect**: Perubahan kecil pada input (bahkan satu bit) akan mengubah hasil output hash secara drastis.
+
+#### Fungsi Hash Populer:
+- **MD5** (128-bit): Sudah tidak aman lagi untuk kebutuhan keamanan karena rentan terhadap collision attack.
+- **SHA-256** (256-bit): Bagian dari keluarga SHA-2, standar industri saat ini untuk integritas berkas dan tanda tangan digital.`,
+      orderIndex: 1,
+    },
+  });
+
+  const lesHashingPassword = await prisma.lesson.create({
+    data: {
+      moduleId: modHashing.id,
+      title: 'Hashing Password dengan Salt',
+      content: `### Mengapa Menyimpan Password dengan Aman Sangat Penting?
+
+Password tidak boleh disimpan dalam plaintext di database. Jika database bocor, penyerang dapat langsung melihat password pengguna. Solusinya adalah melakukan **hashing**.
+
+#### Serangan terhadap Hashing Sederhana:
+1. **Dictionary Attack**: Penyerang mencocokkan hash dengan kamus kata sandi populer yang sudah di-hash.
+2. **Rainbow Table**: Tabel besar berisi ribuan pasang plaintext kata sandi dan nilai hash-nya untuk pencarian instan.
+
+#### Solusi: Menambahkan Salt
+**Salt** adalah data acak unik yang ditambahkan ke password sebelum proses hashing dijalankan.
+
+\`\`\`text
+Password + Salt -> Hash Function -> Secure Hash
+\`\`\`
+
+Dengan Salt, pengguna dengan password yang sama tetap memiliki nilai hash yang berbeda di database. Rainbow table menjadi tidak berguna karena penyerang harus membuat tabel baru untuk setiap salt unik.
+
+#### Algoritma Hashing Modern untuk Password:
+- **Bcrypt**: Menggunakan algoritma blowfish, dirancang lambat (memiliki cost factor) untuk menahan serangan brute-force.
+- **Argon2**: Pemenang Password Hashing Competition (PHC), sangat tahan terhadap serangan berbasis GPU/ASIC hardware.`,
+      orderIndex: 2,
+    },
+  });
+
+  const modSymmetricAsymmetric = await prisma.module.create({
+    data: {
+      courseId: courseCrypto.id,
+      title: 'Enkripsi Simetrik & Asimetrik',
+      orderIndex: 3,
+    },
+  });
+
+  const lesSymmetric = await prisma.lesson.create({
+    data: {
+      moduleId: modSymmetricAsymmetric.id,
+      title: 'Symmetric Encryption (AES)',
+      content: `### Enkripsi Kunci Simetris
+
+**Symmetric Encryption** adalah metode enkripsi di mana pengirim dan penerima pesan menggunakan **kunci yang sama** untuk melakukan enkripsi dan dekripsi data.
+
+#### Keuntungan:
+- Proses komputasi sangat cepat.
+- Cocok untuk mengenkripsi data berukuran besar (bulk encryption).
+
+#### Kelemahan:
+- **Key Distribution Problem**: Bagaimana cara membagikan kunci rahasia tersebut dengan aman ke penerima tanpa disadap oleh penyerang?
+
+#### Standar Enkripsi Simetris Modern:
+**Advanced Encryption Standard (AES)** adalah standar enkripsi simetris global saat ini. Memiliki ukuran kunci 128, 192, atau 256 bit. AES dianggap sangat aman dan digunakan di berbagai protokol seperti TLS, HTTPS, dan enkripsi disk penuh.`,
+      orderIndex: 1,
+    },
+  });
+
+  const lesAsymmetric = await prisma.lesson.create({
+    data: {
+      moduleId: modSymmetricAsymmetric.id,
+      title: 'Asymmetric Encryption (RSA)',
+      content: `### Enkripsi Kunci Asimetris (Public Key Cryptography)
+
+Untuk menyelesaikan masalah distribusi kunci pada enkripsi simetrik, **Asymmetric Encryption** memperkenalkan konsep sepasang kunci:
+1. **Public Key**: Kunci yang disebarkan secara bebas kepada siapapun. Digunakan untuk **mengenkripsi** pesan.
+2. **Private Key**: Kunci rahasia yang disimpan rapat oleh pemiliknya. Digunakan untuk **mendekripsi** pesan.
+
+#### Cara Kerja Singkat:
+Jika Alice ingin mengirim pesan aman ke Bob:
+1. Alice mengambil **Public Key Bob**.
+2. Alice mengenkripsi pesan menggunakan Public Key Bob tersebut.
+3. Pesan dikirimkan ke Bob. Hanya Bob yang dapat mendekripsinya menggunakan **Private Key Bob** yang dimilikinya.
+
+#### Contoh Algoritma:
+- **RSA**: Berdasarkan kesulitan faktorisasi dua bilangan prima besar.
+- **ECC (Elliptic Curve Cryptography)**: Menawarkan keamanan setingkat RSA tetapi dengan ukuran kunci jauh lebih kecil, menghemat bandwidth dan komputasi.`,
+      orderIndex: 2,
+    },
+  });
+
+  // Course 3: Bug Bounty & Web Reconnaissance (INTERMEDIATE)
+  const courseBugBounty = await prisma.course.create({
+    data: {
+      title: 'Bug Bounty & Web Reconnaissance',
+      description: 'Pelajari dasar-dasar pencarian bug secara legal pada aplikasi web. Kurikulum ini memandu Anda melakukan tahapan rekognisi (recon) target, pemetaan teknologi, dan penyusunan laporan temuan yang valid.',
+      level: 'INTERMEDIATE',
+      isPublished: true,
+      createdBy: admin.id,
+    },
+  });
+
+  const modRecon = await prisma.module.create({
+    data: {
+      courseId: courseBugBounty.id,
+      title: 'Rekognisi & Pemetaan Target',
+      orderIndex: 1,
+    },
+  });
+
+  const lesRecon1 = await prisma.lesson.create({
+    data: {
+      moduleId: modRecon.id,
+      title: 'Subdomain Discovery & OSINT',
+      content: `### Dasar Tahapan Rekognisi (Recon)
+
+Dalam dunia Bug Bounty, pepatah "Semakin banyak tahu target, semakin besar celah ditemukan" sangatlah benar. Rekognisi terbagi menjadi:
+1. **Passive Recon**: Mengumpulkan data tanpa berinteraksi langsung dengan server target (menggunakan search engine, DNS record, OSINT).
+2. **Active Recon**: Berinteraksi langsung dengan target (port scanning, directory bruteforcing).
+
+#### Subdomain Enumeration
+Subdomain sering kali menyimpan aplikasi internal yang terlupakan atau tidak terawat oleh admin perusahaan.
+- **Tools**: Subfinder, Amass, Assetfinder.
+- **OSINT Sources**: Certificate Transparency Logs (crt.sh), Shodan, Google Dorking.`,
+      orderIndex: 1,
+    },
+  });
+
+  const lesRecon2 = await prisma.lesson.create({
+    data: {
+      moduleId: modRecon.id,
+      title: 'Port Scanning & Fingerprinting',
+      content: `### Mengidentifikasi Service dan Port Terbuka
+
+Setelah menemukan host aktif, langkah berikutnya adalah mencari tahu port apa saja yang terbuka dan layanan apa saja yang berjalan di atasnya.
+
+#### Nmap (Network Mapper)
+Nmap adalah standar industri untuk pemindaian jaringan.
+- Memindai 1000 port populer: \`nmap <target_ip>\`
+- Deteksi versi service (\`-sV\`) dan sistem operasi (\`-O\`): \`nmap -sV -O <target_ip>\`
+
+#### Service Fingerprinting & Banner Grabbing
+Banner grabbing adalah teknik membaca pesan sambutan (banner) dari port terbuka untuk mengetahui versi software secara spesifik. Informasi ini penting karena jika software tersebut menggunakan versi usang, kita dapat mencari Known Vulnerabilities (CVE) yang terkait.`,
+      orderIndex: 2,
+    },
+  });
+
+  const modReporting = await prisma.module.create({
+    data: {
+      courseId: courseBugBounty.id,
+      title: 'Praktik Bug Bounty & Reporting',
+      orderIndex: 2,
+    },
+  });
+
+  const lesReporting1 = await prisma.lesson.create({
+    data: {
+      moduleId: modReporting.id,
+      title: 'Menulis Laporan Bug Bounty Profesional',
+      content: `### Mengapa Kualitas Laporan Sangat Menentukan?
+
+Laporan temuan yang tidak jelas dapat berujung pada penolakan (Rejected) atau penutupan tanpa reward. Laporan yang baik membantu tim keamanan (triage) mereproduksi celah secara cepat.
+
+#### Struktur Laporan Bug Bounty yang Baik:
+1. **Title**: Ringkas dan deskriptif (contoh: "IDOR pada /api/v1/profile yang mengekspos data pribadi user").
+2. **Description**: Penjelasan singkat mengenai letak kerentanan.
+3. **Steps to Reproduce (PoC)**: Langkah-langkah detail bernomor dari awal hingga exploit berhasil dipicu.
+4. **Impact**: Penjelasan dampak bisnis jika celah ini dieksploitasi oleh aktor jahat.
+5. **Mitigation Recommendation**: Cara memperbaiki kode program agar aman.`,
+      orderIndex: 1,
+    },
+  });
+
+  const lesReporting2 = await prisma.lesson.create({
+    data: {
+      moduleId: modReporting.id,
+      title: 'Klasifikasi Severity menggunakan CVSS v3.1',
+      content: `### Mengenal Common Vulnerability Scoring System (CVSS)
+
+CVSS adalah standar industri untuk menilai tingkat keparahan (severity) suatu kerentanan keamanan menggunakan skor dari 0.0 hingga 10.0.
+
+#### Kategori Severity:
+- **Low**: 0.1 - 3.9
+- **Medium**: 4.0 - 6.9
+- **High**: 7.0 - 8.9
+- **Critical**: 9.0 - 10.0
+
+#### Parameter Utama Penilaian:
+- **Attack Vector (AV)**: Seberapa mudah akses penyerang (Network, Adjacent, Local, Physical).
+- **Attack Complexity (AC)**: Kompleksitas serangan (Low, High).
+- **Privileges Required (PR)**: Hak akses awal penyerang (None, Low, High).
+- **User Interaction (UI)**: Apakah membutuhkan interaksi korban (None, Required).
+- **C-I-A Impact**: Dampak terhadap Confidentiality, Integrity, dan Availability.`,
+      orderIndex: 2,
+    },
+  });
+
+  // Course 4: Linux & Reverse Engineering Basics (ADVANCED)
+  const courseLinuxRev = await prisma.course.create({
+    data: {
+      title: 'Linux & Reverse Engineering Basics',
+      description: 'Kurikulum mendalam bagi yang ingin melangkah ke ranah biner dan exploitasi sistem operasi. Pelajari dasar penguasaan command line Linux, hak akses file, struktur berkas ELF, serta analisis biner statis.',
+      level: 'ADVANCED',
+      isPublished: true,
+      createdBy: admin.id,
+    },
+  });
+
+  const modLinux = await prisma.module.create({
+    data: {
+      courseId: courseLinuxRev.id,
+      title: 'Linux Command Line Basics',
+      orderIndex: 1,
+    },
+  });
+
+  const lesLinux1 = await prisma.lesson.create({
+    data: {
+      moduleId: modLinux.id,
+      title: 'Navigasi File System & Permissions',
+      content: `### Dasar Shell Linux
+
+Linux adalah sistem operasi utama yang digunakan dalam infrastruktur server dan keamanan informasi. Pemahaman command line shell sangat krusial.
+
+#### Navigasi Dasar:
+- Menampilkan direktori saat ini: \`pwd\`
+- Melihat isi direktori: \`ls -la\` (menampilkan berkas tersembunyi dan hak akses)
+- Berpindah direktori: \`cd <nama_direktori>\`
+
+#### File Permissions (Hak Akses)
+Setiap file di Linux memiliki pemilik (user), grup (group), dan pihak lain (others). Hak akses direpresentasikan dalam mode:
+- **Read (r)** = 4
+- **Write (w)** = 2
+- **Execute (x)** = 1
+
+Contoh hak akses \`chmod 755 file.sh\`:
+- Pemilik: 7 (rwx)
+- Grup: 5 (r-x)
+- Others: 5 (r-x)`,
+      orderIndex: 1,
+    },
+  });
+
+  const lesLinux2 = await prisma.lesson.create({
+    data: {
+      moduleId: modLinux.id,
+      title: 'Piping & Grep untuk Analisis Log',
+      content: `### Menggabungkan Perintah Linux
+
+Di Linux, kita dapat mengalirkan keluaran (output) dari suatu perintah untuk menjadi masukan (input) perintah lainnya menggunakan simbol pipe (\`|\`).
+
+#### Grep (Global Regular Expression Print)
+Grep digunakan untuk menyaring string text berdasarkan pola tertentu.
+- Mencari string 'failed' di berkas log: \`grep "failed" /var/log/auth.log\`
+
+#### Contoh Kombinasi Piping & Grep:
+\`\`\`bash
+cat access.log | grep "POST /api" | wc -l
+\`\`\`
+Perintah di atas akan membaca berkas \`access.log\`, menyaring baris yang mengandung request \`POST /api\`, lalu menghitung jumlah barisnya (\`wc -l\`). Sangat berguna untuk mendeteksi indikasi percobaan eksploitasi.`,
+      orderIndex: 2,
+    },
+  });
+
+  const modRev = await prisma.module.create({
+    data: {
+      courseId: courseLinuxRev.id,
+      title: 'Reverse Engineering Dasar',
+      orderIndex: 2,
+    },
+  });
+
+  const lesRev1 = await prisma.lesson.create({
+    data: {
+      moduleId: modRev.id,
+      title: 'Memahami Struktur Biner ELF',
+      content: `### Apa itu Reverse Engineering?
+
+**Reverse Engineering (RE)** adalah proses menganalisis sistem atau biner untuk memahami cara kerjanya tanpa akses ke source code asli.
+
+#### Format Berkas ELF (Executable and Linkable Format)
+Di sistem operasi Linux, file executable biner dikemas dalam format **ELF**.
+Struktur utama ELF meliputi:
+- **ELF Header**: Berisi metadata utama seperti arsitektur (32-bit/64-bit), entry point address, dan OS ABI.
+- **Program Header Table**: Menginstruksikan sistem operasi bagaimana membuat proses memory image (loading).
+- **Section Header Table**: Berisi lokasi bagian-bagian kode seperti \`.text\` (kode instruksi assembly), \`.data\` (global variabel terinisialisasi), dan \`.rodata\` (read-only data seperti static string).`,
+      orderIndex: 1,
+    },
+  });
+
+  const lesRev2 = await prisma.lesson.create({
+    data: {
+      moduleId: modRev.id,
+      title: 'Analisis Statis Biner',
+      content: `### Teknik Analisis Statis Biner
+
+Analisis statis adalah menganalisis program biner tanpa mengeksekusinya.
+
+#### Alat Bantu CLI Terpopuler:
+1. **file**: Mengidentifikasi arsitektur biner.
+   \`\`\`bash
+   file crackme
+   \`\`\`
+2. **strings**: Mencari strings ASCII tercetak dalam biner. Berguna untuk mencari hardcoded key, flag, atau API endpoint.
+   \`\`\`bash
+   strings crackme | grep "CTF"
+   \`\`\`
+3. **objdump**: Melakukan disassembly dari biner mesin kembali menjadi kode assembly bahasa rakitan.
+   \`\`\`bash
+   objdump -d crackme | less
+   \`\`\`
+
+#### Analisis Dinamis (Tambahan)
+Mengeksekusi program di sandbox terisolasi sambil mengamati perilakunya menggunakan debugging tool seperti **GDB** (GNU Debugger) atau **strace** (System Call Trace).`,
+      orderIndex: 2,
+    },
+  });
+
+  // Course 1 additions: Module 3 and 4 for Web Security Basic
+  const modXss = await prisma.module.create({
+    data: {
+      courseId: courseWeb.id,
+      title: 'Cross-Site Scripting (XSS)',
+      orderIndex: 3,
+    },
+  });
+
+  const lesXssIntro = await prisma.lesson.create({
+    data: {
+      moduleId: modXss.id,
+      title: 'Apa itu Cross-Site Scripting (XSS)?',
+      content: `### Pemahaman Cross-Site Scripting (XSS)
+
+**XSS** adalah kerentanan keamanan web di mana penyerang berhasil menyuntikkan (inject) script berbahaya (biasanya JavaScript) ke dalam halaman web yang sah, yang kemudian dieksekusi oleh browser korban.
+
+#### Tiga Jenis Utama XSS:
+1. **Stored XSS**: Script berbahaya disimpan secara permanen di database server (misal di komentar postingan) dan dimuat setiap kali user mengunjungi halaman tersebut.
+2. **Reflected XSS**: Script berbahaya disuntikkan melalui parameter HTTP request (URL) dan langsung dipantulkan kembali di respon halaman tanpa disimpan.
+3. **DOM-based XSS**: Kerentanan terjadi sepenuhnya di sisi klien (browser) di mana JavaScript lokal memproses input tidak aman dan memodifikasi struktur DOM halaman.
+
+#### Dampak Eksploitasi:
+- Pencurian cookie sesi (Session Hijacking).
+- Redirect korban ke situs phishing.
+- Manipulasi tampilan halaman web (Defacement).`,
+      orderIndex: 1,
+    },
+  });
+
+  const lesXssDefense = await prisma.lesson.create({
+    data: {
+      moduleId: modXss.id,
+      title: 'Mencegah Kerentanan XSS',
+      content: `### Cara Mengatasi Cross-Site Scripting
+
+XSS dapat dicegah dengan menerapkan beberapa lapis pertahanan:
+
+#### 1. Input Sanitization & Output Encoding
+- **Sanitasi**: Membersihkan karakter berbahaya (seperti mengubah \`<\` menjadi \`&lt;\`, \`>\` menjadi \`&gt;\`).
+- **Context-Aware Encoding**: Lakukan encoding data sesuai tempat data dirender (HTML body, Javascript variable, URL query).
+
+#### 2. Content Security Policy (CSP)
+CSP adalah HTTP header respon yang memberi tahu browser domain mana saja yang diizinkan untuk memuat dan mengeksekusi script.
+Contoh:
+\`\`\`http
+Content-Security-Policy: default-src 'self'; script-src 'self' https://trustedscripts.com;
+\`\`\`
+
+#### 3. HttpOnly Cookies
+Mencegah JavaScript mengakses token sesi sensitif menggunakan perintah \`document.cookie\`. Ini meminimalkan dampak jika XSS terjadi.`,
+      orderIndex: 2,
+    },
+  });
+
+  const modIdor = await prisma.module.create({
+    data: {
+      courseId: courseWeb.id,
+      title: 'Insecure Direct Object Reference (IDOR)',
+      orderIndex: 4,
+    },
+  });
+
+  const lesIdorIntro = await prisma.lesson.create({
+    data: {
+      moduleId: modIdor.id,
+      title: 'Konsep IDOR & Broken Access Control',
+      content: `### Pengenalan IDOR
+
+**IDOR** terjadi ketika aplikasi memberikan akses langsung ke objek database berdasarkan input pengguna, tanpa memverifikasi apakah pengguna tersebut memiliki otorisasi untuk mengakses objek tersebut.
+
+#### Contoh Kerentanan:
+Sebuah portal invoice memuat file invoice berdasarkan ID numerik:
+\`\`\`text
+https://target.com/invoice/view?id=4820
+\`\`\`
+
+Jika Alice mengubah parameter \`id\` menjadi \`4821\` (invoice milik Bob) dan aplikasi langsung menampilkannya tanpa mengecek kepemilikan, Alice berhasil mengeksploitasi celah IDOR!
+
+#### Mengapa IDOR Terjadi?
+Kerentanan ini disebabkan oleh kegagalan implementasi otorisasi di sisi backend server. Developer sering kali hanya mengandalkan kerahasiaan URL atau ID yang panjang, padahal parameter tersebut mudah ditebak atau dimanipulasi.`,
+      orderIndex: 1,
+    },
+  });
+
+  const lesIdorDefense = await prisma.lesson.create({
+    data: {
+      moduleId: modIdor.id,
+      title: 'Mitigasi IDOR dan Broken Access Control',
+      content: `### Langkah Pengamanan Akses Objek
+
+Mitigasi IDOR berpusat pada pemeriksaan otorisasi yang ketat.
+
+#### 1. Implementasikan Pemeriksaan Otorisasi berbasis User Session
+Setiap kali ada request file atau objek, pastikan backend menanyakan: "Apakah user ID saat ini memiliki hak akses ke objek dengan ID ini?"
+
+Contoh Node.js aman:
+\`\`\`javascript
+// AMAN: Validasi kepemilikan sebelum mengembalikan data
+const invoice = await prisma.invoice.findFirst({
+  where: {
+    id: invoiceId,
+    userId: session.userId // Membatasi pencarian hanya pada data user yang login
+  }
+});
+if (!invoice) return res.status(404).json({ error: "Invoice tidak ditemukan." });
+\`\`\`
+
+#### 2. Gunakan Non-System/Random Identifiers (UUID)
+Alih-alih ID increment bertipe integer (\`1, 2, 3, ...\`), gunakan UUID v4 yang panjang dan acak (\`e3b8a1c9-73fb-464a-bd54-d8bc28cfae8b\`). Ini mencegah penyerang melakukan brute-force atau menebak ID objek pengguna lain.`,
+      orderIndex: 2,
+    },
+  });
+
   console.log('Created Courses, Modules, and Lessons.');
 
   // Create Challenges
@@ -341,12 +791,151 @@ Gunakan tab "Interactive Lab" pada tantangan ini untuk mensimulasikan manipulasi
 2. Di kolom URL input atau ID dokumen, ganti nilai parameter ID menjadi 1.
 3. Klik "Fetch Document".
 4. Dokumen admin akan ditampilkan lengkap dengan flagnya.`,
-      relatedLessonId: null,
+      relatedLessonId: lesIdorIntro.id,
       createdBy: admin.id,
     },
   });
 
-  console.log('Created Challenges:', { c1: challengeSqli.title, c2: challengeCrypto.title, c3: challengeIdor.title });
+  // Challenge 4: Cross-Site Scripting (XSS): Guestbook (WEB - MEDIUM)
+  const flag4 = 'CTF{st0r3d_xss_g3stb00k_c00k13_st3al}';
+  const flagHash4 = await bcrypt.hash(flag4, 10);
+  const challengeXss = await prisma.challenge.create({
+    data: {
+      title: 'Cross-Site Scripting (XSS): Guestbook',
+      description: `### Deskripsi
+Diberikan sebuah halaman Guestbook (buku tamu) di mana pengunjung dapat meninggalkan komentar. Namun, kolom komentar ini tidak melakukan sanitasi input html/javascript.
+
+Eksploitasi celah ini dengan menyuntikkan script JavaScript yang dapat membaca cookie administrator. Administrator memeriksa buku tamu ini secara berkala.
+
+Flag berada di dalam nilai cookie session administrator yang dikirimkan.
+
+Format Flag: \`CTF{...}\``,
+      category: 'WEB',
+      difficulty: 'MEDIUM',
+      point: 150,
+      flagHash: flagHash4,
+      hint: 'Kirimkan payload Stored XSS klasik `<script>document.write(document.cookie)</script>` atau payload pencuri cookie untuk dijalankan di browser admin simulator.',
+      solution: `Suntikkan payload javascript ke input komentar guestbook seperti: <script>alert(document.cookie)</script>, submit, lalu baca cookie yang dimuat oleh admin simulator.`,
+      relatedLessonId: lesXssIntro.id,
+      createdBy: admin.id,
+    },
+  });
+
+  // Challenge 5: Reverse Engineering: ELF Crackme (REV - EASY)
+  const flag5 = 'CTF{3lf_c4rckm3_5tr1ng_53arch}';
+  const flagHash5 = await bcrypt.hash(flag5, 10);
+  const challengeRev = await prisma.challenge.create({
+    data: {
+      title: 'Reverse Engineering: ELF Crackme',
+      description: `### Deskripsi
+Kami berhasil merebut biner executable Linux ELF berukuran kecil dari server musuh. Program ini meminta serial key input untuk memvalidasi akses, dan flag di-hardcode di dalam berkas biner tersebut.
+
+Analisis berkas biner ini menggunakan pembedahan statis untuk mengekstrak string flag-nya.
+
+Unduh berkas biner atau bayangkan Anda memiliki tools CLI Linux.
+
+Format Flag: \`CTF{...}\``,
+      category: 'REV',
+      difficulty: 'EASY',
+      point: 100,
+      flagHash: flagHash5,
+      hint: 'Gunakan utilitas CLI Linux `strings` pada berkas biner target untuk menampilkan seluruh karakter teks tercetak di dalamnya, lalu grep dengan pola "CTF".',
+      solution: `Jalankan perintah: strings crackme | grep "CTF"`,
+      relatedLessonId: lesRev2.id,
+      createdBy: admin.id,
+    },
+  });
+
+  // Challenge 6: Digital Forensics: Network Inspection (FORENSICS - EASY)
+  const flag6 = 'CTF{pcap_4nalys1s_h77p_p4ssw0rd}';
+  const flagHash6 = await bcrypt.hash(flag6, 10);
+  const challengeForensic = await prisma.challenge.create({
+    data: {
+      title: 'Digital Forensics: Network Inspection',
+      description: `### Deskripsi
+Telah terjadi pembocoran data kredensial di jaringan internal perusahaan. Kami berhasil menangkap lalu lintas paket jaringan dalam format berkas \`capture.pcap\`.
+
+Temukan parameter password / flag yang dikirimkan melalui protokol HTTP yang tidak terenkripsi (plaintext).
+
+Format Flag: \`CTF{...}\``,
+      category: 'FORENSICS',
+      difficulty: 'EASY',
+      point: 100,
+      flagHash: flagHash6,
+      hint: 'Filter lalu lintas HTTP di Wireshark menggunakan kata kunci `http.request.method == "POST"`, periksa isi baris data payload form HTTP POST.',
+      solution: `Analisis file pcap menggunakan Wireshark, cari HTTP request bertipe POST, lalu periksa isi payload data parameters login.`,
+      relatedLessonId: lesSymmetric.id,
+      createdBy: admin.id,
+    },
+  });
+
+  // Challenge 7: OSINT: Missing Agent (OSINT - EASY)
+  const flag7 = 'CTF{0s1nt_g30l0c4t1on_found}';
+  const flagHash7 = await bcrypt.hash(flag7, 10);
+  const challengeOsint = await prisma.challenge.create({
+    data: {
+      title: 'OSINT: Missing Agent',
+      description: `### Deskripsi
+Seorang agen lapangan intelijen kami mengirimkan foto terakhirnya sebelum ia menghilang secara misterius. Foto tersebut diambil di sebuah kota pelabuhan.
+
+Pecahkan informasi koordinat latitude dan longitude dari EXIF metadata gambar tersebut untuk mengetahui di kota mana ia berada.
+
+Flag berupa nama kota pelabuhan tersebut (huruf kecil semua, contoh: \`CTF{jakarta}\` atau \`CTF{surabaya}\`).
+
+Format Flag: \`CTF{nama_kota}\``,
+      category: 'OSINT',
+      difficulty: 'EASY',
+      point: 50,
+      flagHash: flagHash7,
+      hint: 'Gunakan online tool metadata reader atau CLI `exiftool` untuk membaca metadata GPS latitude/longitude, lalu gunakan google maps reverse geocoding.',
+      solution: `Baca EXIF data gambar, dapatkan titik GPS, masukkan ke Google Maps, cari kota pelabuhannya, dan format sebagai flag.`,
+      relatedLessonId: lesRecon1.id,
+      createdBy: admin.id,
+    },
+  });
+
+  // Challenge 8: Cryptography: RSA Simple (CRYPTO - MEDIUM)
+  const flag8 = 'CTF{rsa_pr1m3s_n_d_decrypt}';
+  const flagHash8 = await bcrypt.hash(flag8, 10);
+  const challengeCryptoRsa = await prisma.challenge.create({
+    data: {
+      title: 'Cryptography: RSA Simple',
+      description: `### Deskripsi
+Diberikan parameter kunci publik RSA berupa dua bilangan prima berikut:
+- \`p = 61\`
+- \`q = 53\`
+- \`e = 17\`
+
+Ciphertext pesan terenkripsi yang didapatkan adalah \`c = 2775\`.
+
+Dekripsikan ciphertext tersebut untuk menemukan plaintext aslinya (berupa integer). Flag adalah plaintext integer tersebut yang diapit format flag.
+
+Format Flag: \`CTF{plaintext_integer}\``,
+      category: 'CRYPTO',
+      difficulty: 'MEDIUM',
+      point: 150,
+      flagHash: flagHash8,
+      hint: 'Hitung n = p * q, lalu hitung totient phi(n) = (p-1) * (q-1). Temukan eksponen dekripsi d dengan menghitung modular multiplicative inverse dari e modulo phi(n). Plaintext m = c^d mod n.',
+      solution: `1. n = 61 * 53 = 3233.
+2. phi(n) = 60 * 52 = 3120.
+3. d = modInverse(17, 3120) = 2753.
+4. Plaintext m = 2775^2753 mod 3233 = 65 (ASCII 'A').
+5. Flag: CTF{rsa_pr1m3s_n_d_decrypt} (atau integer 65 jika dikonversi).`,
+      relatedLessonId: lesAsymmetric.id,
+      createdBy: admin.id,
+    },
+  });
+
+  console.log('Created Challenges:', {
+    c1: challengeSqli.title,
+    c2: challengeCrypto.title,
+    c3: challengeIdor.title,
+    c4: challengeXss.title,
+    c5: challengeRev.title,
+    c6: challengeForensic.title,
+    c7: challengeOsint.title,
+    c8: challengeCryptoRsa.title,
+  });
 
   // Create Bug Bounty Programs
   const bbProgramEcommerce = await prisma.bugBountyProgram.create({
@@ -387,7 +976,29 @@ Simulator API CyberTrust tersedia di tab Lab Aplikasi di bawah.`,
     },
   });
 
-  console.log('Created Bug Bounty Programs:', { p1: bbProgramEcommerce.title, p2: bbProgramBank.title });
+  const bbProgramCloud = await prisma.bugBountyProgram.create({
+    data: {
+      title: 'Cloud Storage API (CyberDrive)',
+      description: `### Deskripsi Program
+CyberDrive adalah platform penyimpanan cloud berkas penting perusahaan. Kami mengundang peniliti keamanan untuk menguji API pengunduhan file eksternal dari bucket server sandbox kami.
+
+### Target Lab
+Simulator CyberDrive tersedia di tab Lab Aplikasi di bawah. Analisis input jalur file (file path) untuk mencari celah path traversal.`,
+      scope: `1. https://api.cyberdrive.local/v1/files/download (File download handler)
+2. https://api.cyberdrive.local/v1/bucket/policy (Bucket configuration policy)`,
+      outOfScope: `1. Bruteforce ID invoice atau mengunggah malware massal.
+2. Segala bentuk serangan social engineering.`,
+      labUrl: '/labs/cyberdrive',
+      rewardPoint: 450,
+      createdBy: admin.id,
+    },
+  });
+
+  console.log('Created Bug Bounty Programs:', {
+    p1: bbProgramEcommerce.title,
+    p2: bbProgramBank.title,
+    p3: bbProgramCloud.title,
+  });
 
   // Create some initial submissions & progress for demonstration
   // 1. User solved Caesar Cipher

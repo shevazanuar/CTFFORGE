@@ -50,6 +50,15 @@ function ChallengesContent() {
   const [hintUnlocked, setHintUnlocked] = useState(false);
   const [solutionUnlocked, setSolutionUnlocked] = useState(false);
 
+  // Copy state
+  const [copiedText, setCopiedText] = useState<string | null>(null);
+
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedText(text);
+    setTimeout(() => setCopiedText(null), 2000);
+  };
+
   // Generator form state
   const [prompt, setPrompt] = useState('');
   const [genCategory, setGenCategory] = useState('WEB');
@@ -426,7 +435,13 @@ function ChallengesContent() {
                               {sqliResult.success && sqliResult.flag && (
                                 <div className="mt-2 p-2 bg-zinc-950 rounded border border-cyber-green/40 font-bold select-all flex justify-between items-center">
                                   <span>FLAG: {sqliResult.flag}</span>
-                                  <span className="text-[8px] text-gray-500 uppercase">Salin Flag ini</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopy(sqliResult.flag || '')}
+                                    className="text-[8px] text-cyber-green hover:text-white bg-cyber-green/10 hover:bg-cyber-green/20 px-2 py-1 rounded border border-cyber-green/30 uppercase cursor-pointer transition-all"
+                                  >
+                                    {copiedText === sqliResult.flag ? 'Tersalin!' : 'Salin Flag'}
+                                  </button>
                                 </div>
                               )}
                             </div>
@@ -464,7 +479,13 @@ function ChallengesContent() {
                               {idorResult.success && idorResult.flag && (
                                 <div className="mt-2 p-2 bg-zinc-950 rounded border border-cyber-green/40 font-bold select-all flex justify-between items-center text-cyber-green">
                                   <span>FLAG: {idorResult.flag}</span>
-                                  <span className="text-[8px] text-gray-500 uppercase">Salin Flag</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopy(idorResult.flag || '')}
+                                    className="text-[8px] text-cyber-green hover:text-white bg-cyber-green/10 hover:bg-cyber-green/20 px-2 py-1 rounded border border-cyber-green/30 uppercase cursor-pointer transition-all"
+                                  >
+                                    {copiedText === idorResult.flag ? 'Tersalin!' : 'Salin Flag'}
+                                  </button>
                                 </div>
                               )}
                             </div>
@@ -656,7 +677,7 @@ function ChallengesContent() {
                       >
                         <div>
                           <div className="text-white font-bold">{d.generatedTitle}</div>
-                          <div className="text-gray-500 mt-0.5">Prompt: "{d.promptInput}"</div>
+                          <div className="text-gray-500 mt-0.5">Prompt: &quot;{d.promptInput}&quot;</div>
                         </div>
                         <span className={`px-2 py-0.5 rounded-full font-bold text-[8px] ${
                           d.status === 'PENDING' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20 animate-pulse' :
@@ -703,9 +724,18 @@ function ChallengesContent() {
                     </div>
 
                     {/* Flag text */}
-                    <div className="p-3 rounded bg-zinc-950 border border-cyber-green/30 text-cyber-green">
-                      <div className="text-[10px] text-gray-500 font-bold mb-1">BENDERA FLAG (PLAIN TEXT - HANYA DITAMPILKAN SEKALI)</div>
-                      <span className="text-sm font-bold select-all">{generatedDraft.plainFlag}</span>
+                    <div className="p-3 rounded bg-zinc-950 border border-cyber-green/30 text-cyber-green flex justify-between items-center">
+                      <div>
+                        <div className="text-[10px] text-gray-500 font-bold mb-1">BENDERA FLAG (PLAIN TEXT - HANYA DITAMPILKAN SEKALI)</div>
+                        <span className="text-sm font-bold select-all">{generatedDraft.plainFlag}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(generatedDraft.plainFlag)}
+                        className="text-[8px] text-cyber-green hover:text-white bg-cyber-green/10 hover:bg-cyber-green/20 px-2 py-1 rounded border border-cyber-green/30 uppercase cursor-pointer transition-all"
+                      >
+                        {copiedText === generatedDraft.plainFlag ? 'Tersalin!' : 'Salin Flag'}
+                      </button>
                     </div>
 
                     {/* Description */}
