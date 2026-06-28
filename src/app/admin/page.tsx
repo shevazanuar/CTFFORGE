@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/context/AuthContext';
 import { 
@@ -14,17 +14,11 @@ import {
   X, 
   ShieldAlert, 
   ChevronRight, 
-  Award, 
   Trash2, 
   Edit2, 
   Plus, 
   ArrowLeft 
 } from 'lucide-react';
-
-interface User {
-  id: string;
-  name: string;
-}
 
 interface Lesson {
   id: string;
@@ -113,6 +107,10 @@ interface AdminLog {
   admin: { name: string; email: string };
 }
 
+interface LeaderboardEntry {
+  id: string;
+}
+
 export default function AdminPage() {
   const { user } = useAuth();
   
@@ -187,7 +185,7 @@ export default function AdminPage() {
   const [newProgLabUrl, setNewProgLabUrl] = useState('');
   const [newProgPoints, setNewProgPoints] = useState('200');
 
-  const fetchAdminData = async () => {
+  const fetchAdminData = useCallback(async () => {
     try {
       setLoading(true);
       // Fetch stats & lists
@@ -208,23 +206,31 @@ export default function AdminPage() {
         const logsData = await logsRes.json();
         const progData = await progRes.json();
 
-        const pReports = reportsData.reports.filter((r: any) => r.status === 'PENDING');
-        const pDrafts = draftsData.drafts.filter((d: any) => d.status === 'PENDING');
+        const reports = reportsData.reports as BugReport[];
+        const drafts = draftsData.drafts as Draft[];
+        const fetchedCourses = coursesData.courses as Course[];
+        const fetchedChallenges = chData.challenges as Challenge[];
+        const leaderboard = lbData.leaderboard as LeaderboardEntry[];
+        const logs = logsData.logs as AdminLog[];
+        const fetchedPrograms = progData.programs as BugBountyProgram[];
+
+        const pReports = reports.filter((r) => r.status === 'PENDING');
+        const pDrafts = drafts.filter((d) => d.status === 'PENDING');
 
         setPendingReports(pReports);
         setPendingDrafts(pDrafts);
-        setCourses(coursesData.courses);
-        setChallenges(chData.challenges);
-        setAdminLogs(logsData.logs);
-        setPrograms(progData.programs);
+        setCourses(fetchedCourses);
+        setChallenges(fetchedChallenges);
+        setAdminLogs(logs);
+        setPrograms(fetchedPrograms);
 
         // Keep selected dynamic context fresh if loaded in UI
         if (selectedCourseForModules) {
-          const freshCourse = coursesData.courses.find((c: any) => c.id === selectedCourseForModules.id);
+          const freshCourse = fetchedCourses.find((c) => c.id === selectedCourseForModules.id);
           if (freshCourse) {
             setSelectedCourseForModules(freshCourse);
             if (selectedModuleForLessons) {
-              const freshMod = freshCourse.modules.find((m: any) => m.id === selectedModuleForLessons.id);
+              const freshMod = freshCourse.modules.find((m) => m.id === selectedModuleForLessons.id);
               if (freshMod) {
                 setSelectedModuleForLessons(freshMod);
               } else {
@@ -238,8 +244,8 @@ export default function AdminPage() {
         }
 
         setStats({
-          usersCount: lbData.leaderboard.length,
-          challengesCount: chData.challenges.length,
+          usersCount: leaderboard.length,
+          challengesCount: fetchedChallenges.length,
           pendingReports: pReports.length,
           pendingDrafts: pDrafts.length,
         });
@@ -249,13 +255,17 @@ export default function AdminPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedCourseForModules, selectedModuleForLessons]);
 
   useEffect(() => {
     if (user?.role === 'ADMIN') {
-      fetchAdminData();
+      async function loadAdminData() {
+        await fetchAdminData();
+      }
+
+      loadAdminData();
     }
-  }, [user]);
+  }, [fetchAdminData, user?.role]);
 
   // Review Bug Report
   const handleReviewReport = async (status: string) => {
@@ -914,7 +924,7 @@ export default function AdminPage() {
 
                   <div className="space-y-4 font-mono text-xs text-gray-300">
                     <p><strong>Digenerate Oleh:</strong> {selectedDraft.creator.name}</p>
-                    <p><strong>Prompt Input User:</strong> "{selectedDraft.promptInput}"</p>
+                    <p><strong>Prompt Input User:</strong> &quot;{selectedDraft.promptInput}&quot;</p>
                     <p><strong>Difficulty & Poin:</strong> {selectedDraft.difficulty} ({selectedDraft.generatedPoint} Pts)</p>
                     
                     <div>
@@ -1034,20 +1044,52 @@ export default function AdminPage() {
                     <div className="cyber-panel p-4 rounded-xl border border-cyber-green/20 bg-zinc-950/40 space-y-3">
                       <div className="flex justify-between items-center border-b border-zinc-900 pb-1.5">
                         <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Lessons: {selectedModuleForLessons.title}</span>
-                        <button onClick={() => setSelectedModuleForLessons(null)} className="text-[9px] text-cyber-red hover:underline">Close</button>
+                        <button onClick={() => { setSelectedModuleForLessons(null); setEditingLesson(null); }} className="text-[9px] text-cyber-red hover:underline">Close</button>
                       </div>
 
                       {selectedModuleForLessons.lessons && selectedModuleForLessons.lessons.length > 0 ? (
                         selectedModuleForLessons.lessons.map((l) => (
-                          <div key={l.id} className="p-3 bg-zinc-950 rounded border border-zinc-900 flex justify-between items-center text-xs">
-                            <div className="flex-1 pr-2">
-                              <span className="text-white font-bold block">{l.title}</span>
-                              <span className="text-[9px] text-gray-500 uppercase">Index: {l.orderIndex}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <button onClick={() => setEditingLesson(l)} className="text-gray-500 hover:text-white"><Edit2 className="h-3.5 w-3.5" /></button>
-                              <button onClick={() => handleDeleteLesson(l.id)} className="text-cyber-red hover:text-white"><Trash2 className="h-3.5 w-3.5" /></button>
-                            </div>
+                          <div key={l.id} className="p-3 bg-zinc-950 rounded border border-zinc-900 text-xs">
+                            {editingLesson?.id === l.id ? (
+                              <form onSubmit={handleUpdateLesson} className="space-y-2">
+                                <input
+                                  type="text"
+                                  value={editingLesson.title}
+                                  onChange={(e) => setEditingLesson({ ...editingLesson, title: e.target.value })}
+                                  className="w-full bg-zinc-900 border border-zinc-800 rounded px-2 py-1 text-white text-xs"
+                                  required
+                                />
+                                <textarea
+                                  value={editingLesson.content}
+                                  onChange={(e) => setEditingLesson({ ...editingLesson, content: e.target.value })}
+                                  className="w-full bg-zinc-900 border border-zinc-800 rounded px-2 py-1 text-white text-xs resize-none"
+                                  rows={3}
+                                  required
+                                />
+                                <input
+                                  type="text"
+                                  value={editingLesson.videoUrl || ''}
+                                  onChange={(e) => setEditingLesson({ ...editingLesson, videoUrl: e.target.value })}
+                                  placeholder="Video URL (optional)..."
+                                  className="w-full bg-zinc-900 border border-zinc-800 rounded px-2 py-1 text-white text-xs"
+                                />
+                                <div className="flex gap-3 justify-end text-[10px]">
+                                  <button type="submit" className="text-cyber-green hover:underline">Save Lesson</button>
+                                  <button type="button" onClick={() => setEditingLesson(null)} className="text-cyber-red hover:underline">Cancel</button>
+                                </div>
+                              </form>
+                            ) : (
+                              <div className="flex justify-between items-center">
+                                <div className="flex-1 pr-2">
+                                  <span className="text-white font-bold block">{l.title}</span>
+                                  <span className="text-[9px] text-gray-500 uppercase">Index: {l.orderIndex}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <button onClick={() => setEditingLesson(l)} className="text-gray-500 hover:text-white"><Edit2 className="h-3.5 w-3.5" /></button>
+                                  <button onClick={() => handleDeleteLesson(l.id)} className="text-cyber-red hover:text-white"><Trash2 className="h-3.5 w-3.5" /></button>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         ))
                       ) : (
@@ -1469,9 +1511,10 @@ export default function AdminPage() {
               <span>Admin Audit Trail Logs</span>
               <button
                 onClick={fetchAdminData}
-                className="text-[10px] text-cyber-blue hover:text-white flex items-center gap-1.5 transition-colors border border-cyber-blue/30 px-2.5 py-1 rounded bg-cyber-blue/5 hover:bg-cyber-blue/10 cursor-pointer"
+                disabled={loading}
+                className="text-[10px] text-cyber-blue hover:text-white flex items-center gap-1.5 transition-colors border border-cyber-blue/30 px-2.5 py-1 rounded bg-cyber-blue/5 hover:bg-cyber-blue/10 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Refresh Logs
+                {loading ? 'Refreshing...' : 'Refresh Logs'}
               </button>
             </h3>
 
