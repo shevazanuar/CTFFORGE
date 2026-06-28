@@ -87,14 +87,14 @@ export async function POST(
       } else {
         isCorrect = flag.trim() === challenge.flagHash.trim();
       }
-    } catch (err) {
+    } catch {
       // Fallback to plaintext comparison in case of hashing issues
       isCorrect = flag.trim() === challenge.flagHash.trim();
     }
 
     if (isCorrect) {
       // 1. Save CORRECT submission
-      const submission = await prisma.challengeSubmission.create({
+      await prisma.challengeSubmission.create({
         data: {
           userId: session.id,
           challengeId: challenge.id,
@@ -105,7 +105,7 @@ export async function POST(
       });
 
       // 2. Award points to user
-      const user = await prisma.user.update({
+      await prisma.user.update({
         where: { id: session.id },
         data: {
           totalPoint: {

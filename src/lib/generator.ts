@@ -1,5 +1,3 @@
-import { hashPassword } from './password';
-
 interface GeneratedDraftResult {
   title: string;
   description: string;

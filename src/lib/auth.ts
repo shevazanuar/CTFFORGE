@@ -115,7 +115,7 @@ export async function verifyToken(token: string): Promise<UserSessionPayload | n
       email: decodedPayload.email,
       role: decodedPayload.role,
     };
-  } catch (e) {
+  } catch {
     return null;
   }
 }

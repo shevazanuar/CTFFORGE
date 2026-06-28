@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
     });
 
     return response;
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error during registration:', error);
     return NextResponse.json(
       { error: 'Terjadi kesalahan pada server.' },

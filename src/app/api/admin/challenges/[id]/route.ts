@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { Prisma } from '@prisma/client';
 import prisma from '@/lib/db';
 import { verifyToken } from '@/lib/auth';
 import { logAdminAction } from '@/lib/audit';
@@ -23,7 +24,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Judul, deskripsi, kategori, kesulitan, dan poin wajib diisi.' }, { status: 400 });
     }
 
-    const updateData: any = {
+    const updateData: Prisma.ChallengeUncheckedUpdateInput = {
       title,
       description,
       category,

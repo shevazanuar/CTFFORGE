@@ -1,5 +1,9 @@
 const bucket = new Map<string, { count: number; resetAt: number }>();
 
+declare global {
+  var __rateLimitInterval: ReturnType<typeof setInterval> | undefined;
+}
+
 // Periodically clean up expired entries from memory to prevent memory leaks
 function cleanup() {
   const now = Date.now();
@@ -11,8 +15,8 @@ function cleanup() {
 }
 
 // Clean up every 5 minutes if running in Node.js/browser environment
-if (typeof global !== 'undefined' && !(global as any).__rateLimitInterval) {
-  (global as any).__rateLimitInterval = setInterval(cleanup, 5 * 60 * 1000);
+if (!globalThis.__rateLimitInterval) {
+  globalThis.__rateLimitInterval = setInterval(cleanup, 5 * 60 * 1000);
 }
 
 /**

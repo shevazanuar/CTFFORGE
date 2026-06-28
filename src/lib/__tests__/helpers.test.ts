@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { rateLimit } from '../rateLimit';
 
-let hashPassword: any;
-let comparePassword: any;
-let signToken: any;
-let verifyToken: any;
+let hashPassword: typeof import('../password').hashPassword;
+let comparePassword: typeof import('../password').comparePassword;
+let signToken: typeof import('../auth').signToken;
+let verifyToken: typeof import('../auth').verifyToken;
 
 beforeAll(async () => {
   // Set the secret before loading the module to prevent the load-time fail-fast check from throwing
