@@ -6,6 +6,10 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Shield, Eye, EyeOff, AlertTriangle, Loader2 } from 'lucide-react';
 
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
+
 function LoginContent() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -42,8 +46,8 @@ function LoginContent() {
       // Redirect
       router.push(redirectPath);
       router.refresh();
-    } catch (err: any) {
-      setError(err.message || 'Terjadi kesalahan.');
+    } catch (err) {
+      setError(getErrorMessage(err, 'Terjadi kesalahan.'));
     } finally {
       setLoading(false);
     }

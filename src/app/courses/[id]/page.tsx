@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/context/AuthContext';
-import { BookOpen, CheckSquare, Square, ChevronLeft, ArrowRight, Target, Award, CheckCircle } from 'lucide-react';
+import { BookOpen, CheckSquare, Square, ChevronLeft, ArrowRight, Target, CheckCircle } from 'lucide-react';
 
 interface Challenge {
   id: string;
@@ -55,7 +55,7 @@ export default function CourseDetailsPage() {
         const res = await fetch('/api/courses');
         if (res.ok) {
           const data = await res.json();
-          const foundCourse = data.courses.find((c: any) => c.id === courseId);
+          const foundCourse = data.courses.find((c: Course) => c.id === courseId);
           if (foundCourse) {
             setCourse(foundCourse);
             setCompletedLessons(data.completedLessonIds || []);
@@ -75,7 +75,7 @@ export default function CourseDetailsPage() {
       }
     }
     fetchCourseData();
-  }, [courseId]);
+  }, [courseId, router]);
 
   const handleToggleComplete = async (lessonId: string, currentStatus: boolean) => {
     if (updatingProgress) return;

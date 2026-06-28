@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useCallback, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface UserBadgeData {
@@ -37,7 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  const refetchUser = async () => {
+  const refetchUser = useCallback(async () => {
     try {
       const res = await fetch('/api/auth/me');
       if (res.ok) {
@@ -52,11 +52,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    refetchUser();
-  }, []);
+    async function loadUser() {
+      await refetchUser();
+    }
+
+    loadUser();
+  }, [refetchUser]);
 
   const logout = async () => {
     try {

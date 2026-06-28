@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
-import { BookOpen, Award, CheckCircle2, ChevronRight, Play } from 'lucide-react';
+import { BookOpen, CheckCircle2, ChevronRight, Play } from 'lucide-react';
 
 interface Lesson {
   id: string;

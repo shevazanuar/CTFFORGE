@@ -6,6 +6,10 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Shield, Eye, EyeOff, AlertTriangle, Loader2 } from 'lucide-react';
 
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
+
 export default function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -45,8 +49,8 @@ export default function RegisterPage() {
       await refetchUser();
       router.push('/dashboard');
       router.refresh();
-    } catch (err: any) {
-      setError(err.message || 'Terjadi kesalahan.');
+    } catch (err) {
+      setError(getErrorMessage(err, 'Terjadi kesalahan.'));
     } finally {
       setLoading(false);
     }

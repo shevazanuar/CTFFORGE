@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Navbar from '@/components/Navbar';
-import { useAuth } from '@/context/AuthContext';
-import { FileText, Shield, Award, Terminal, Eye, AlertTriangle, CheckCircle2, ChevronRight, Play, ArrowRight, ClipboardCheck } from 'lucide-react';
+import { FileText, Shield, Award, Terminal, ChevronRight, Play, ClipboardCheck } from 'lucide-react';
 
 interface Program {
   id: string;
@@ -34,8 +33,6 @@ interface BugReport {
 }
 
 export default function BugBountyPage() {
-  const { user } = useAuth();
-  
   const [programs, setPrograms] = useState<Program[]>([]);
   const [reports, setReports] = useState<BugReport[]>([]);
   
@@ -61,19 +58,16 @@ export default function BugBountyPage() {
   const [couponCode, setCouponCode] = useState('');
   const [itemQuantity, setItemQuantity] = useState(1);
   const [labPointsLog, setLabPointsLog] = useState<string[]>([]);
-  const [evidenceFound, setEvidenceFound] = useState<string | null>(null);
 
   // Bank API Lab states
   const [transferTarget, setTransferTarget] = useState('');
   const [transferAmount, setTransferAmount] = useState('100');
   const [bankBalance, setBankBalance] = useState(1000);
   const [bankLog, setBankLog] = useState<string[]>(['Sistem Bank Aktif. Saldo Awal: Rp 1.000.000']);
-  const [bankEvidence, setBankEvidence] = useState<string | null>(null);
 
   // Cloud Storage (CyberDrive) Lab states
   const [cyberDriveFilePath, setCyberDriveFilePath] = useState('avatar.png');
   const [cyberDriveLog, setCyberDriveLog] = useState<string[]>(['Sistem CyberDrive Aktif. Direktori: /var/www/html/public']);
-  const [cyberDriveEvidence, setCyberDriveEvidence] = useState<string | null>(null);
 
   // Copy state
   const [copiedText, setCopiedText] = useState<string | null>(null);
@@ -84,7 +78,7 @@ export default function BugBountyPage() {
     setTimeout(() => setCopiedText(null), 2000);
   };
 
-  const fetchProgramsAndReports = async () => {
+  const fetchProgramsAndReports = useCallback(async () => {
     try {
       const progRes = await fetch('/api/bug-bounty');
       if (progRes.ok) {
@@ -102,11 +96,15 @@ export default function BugBountyPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchProgramsAndReports();
-  }, []);
+    async function loadBugBountyData() {
+      await fetchProgramsAndReports();
+    }
+
+    loadBugBountyData();
+  }, [fetchProgramsAndReports]);
 
   const handleSelectProgram = (p: Program) => {
     setSelectedProgram(p);
@@ -118,17 +116,15 @@ export default function BugBountyPage() {
     setCouponCode('');
     setItemQuantity(1);
     setLabPointsLog([]);
-    setEvidenceFound(null);
     
     setTransferTarget('');
     setTransferAmount('100');
     setBankBalance(1000);
     setBankLog(['Sistem Bank Aktif. Saldo Awal: Rp 1.000.000']);
-    setBankEvidence(null);
 
     setCyberDriveFilePath('avatar.png');
     setCyberDriveLog(['Sistem CyberDrive Aktif. Direktori: /var/www/html/public']);
-    setCyberDriveEvidence(null);
+    setEvidence('');
   };
 
   const handleFileReportSubmit = async (e: React.FormEvent) => {
@@ -197,7 +193,6 @@ export default function BugBountyPage() {
     if (total < 0) {
       logs.push('CHECKOUT SUKSES! Saldo dompet Anda BERTAMBAH karena nilai transaksi negatif.');
       const evidenceCode = 'EVIDENCE-CYBERSHOP-BAC-NEG-COUPON';
-      setEvidenceFound(evidenceCode);
       setEvidence(evidenceCode); // prefill evidence field
       logs.push(`EVIDENCE CODE FOUND: ${evidenceCode}`);
     } else {
@@ -237,7 +232,6 @@ export default function BugBountyPage() {
       logs.push(`Saldo Baru Anda: Rp ${(newBal * 1000).toLocaleString('id-ID')}`);
       
       const evidenceCode = 'EVIDENCE-BANKAPI-NEG-TRANSFER-ID';
-      setBankEvidence(evidenceCode);
       setEvidence(evidenceCode); // prefill evidence field
       logs.push(`EVIDENCE CODE FOUND: ${evidenceCode}`);
     } else {
@@ -273,7 +267,6 @@ export default function BugBountyPage() {
       logs.push(`flag:x:1001:1001:CTF{path_traversal_cloud_storage_secret}::/home/flag:/bin/bash`);
       
       const evidenceCode = 'EVIDENCE-CYBERDRIVE-PATH-TRAVERSAL';
-      setCyberDriveEvidence(evidenceCode);
       setEvidence(evidenceCode); // prefill evidence field
       logs.push(`EVIDENCE CODE FOUND: ${evidenceCode}`);
     } else if (path === 'avatar.png' || path === 'index.html' || path === 'style.css') {

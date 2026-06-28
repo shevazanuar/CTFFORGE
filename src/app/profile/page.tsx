@@ -2,8 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Navbar from '@/components/Navbar';
-import { useAuth } from '@/context/AuthContext';
-import { Shield, Trophy, Award, Target, FileText, Calendar, CheckCircle2, AlertOctagon, RefreshCw, BarChart2, Layers } from 'lucide-react';
+import { Shield, Award, Target, FileText, Calendar, CheckCircle2, AlertOctagon, RefreshCw, BarChart2, Layers } from 'lucide-react';
 
 interface ProfileData {
   user: {
@@ -61,7 +60,6 @@ interface ProfileData {
 }
 
 export default function ProfilePage() {
-  const { user } = useAuth();
   const [data, setData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');

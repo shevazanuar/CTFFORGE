@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/context/AuthContext';
-import { Shield, Trophy, Award, BookOpen, Target, Sparkles, AlertTriangle, ArrowUpRight, CheckCircle2 } from 'lucide-react';
+import { Shield, Trophy, Award, Target, Sparkles, ArrowUpRight, CheckCircle2 } from 'lucide-react';
 
 interface Challenge {
   id: string;
@@ -22,10 +22,8 @@ interface LeaderboardUser {
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardUser[]>([]);
-  const [userRank, setUserRank] = useState<number | string>('-');
 
   useEffect(() => {
     async function fetchData() {
@@ -45,21 +43,15 @@ export default function DashboardPage() {
         }
       } catch (err) {
         console.error('Error fetching dashboard stats:', err);
-      } finally {
-        setLoading(false);
       }
     }
     fetchData();
   }, []);
 
-  // Compute Rank
-  useEffect(() => {
-    if (user && leaderboard.length > 0) {
-      const index = leaderboard.findIndex((u) => u.id === user.id);
-      if (index !== -1) {
-        setUserRank(index + 1);
-      }
-    }
+  const userRank = useMemo(() => {
+    if (!user || leaderboard.length === 0) return '-';
+    const index = leaderboard.findIndex((u) => u.id === user.id);
+    return index === -1 ? '-' : index + 1;
   }, [user, leaderboard]);
 
   // Statistics calculations

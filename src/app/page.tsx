@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
-import { Shield, BookOpen, Target, FileText, Sparkles, Trophy, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { BookOpen, Target, FileText, Sparkles, ChevronRight } from 'lucide-react';
 
 export default function LandingPage() {
   const pillars = [

@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useEffect, useState, Suspense } from 'react';
+import React, { useCallback, useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/context/AuthContext';
-import { Target, Sparkles, Trophy, Award, CheckCircle2, HelpCircle, Lock, Unlock, Eye, Sparkle, AlertTriangle } from 'lucide-react';
+import { Target, Sparkles, CheckCircle2, HelpCircle, Lock, Unlock, Eye, Sparkle } from 'lucide-react';
 
 interface Challenge {
   id: string;
@@ -18,13 +18,21 @@ interface Challenge {
   solution: string | null;
 }
 
-interface DraftDraft {
+interface UserDraft {
   id: string;
   generatedTitle: string;
   category: string;
   difficulty: string;
   status: string;
   promptInput: string;
+}
+
+interface GeneratedDraft extends UserDraft {
+  generatedPoint: number;
+  plainFlag: string;
+  generatedDescription: string;
+  generatedHint: string;
+  generatedSolution: string;
 }
 
 function ChallengesContent() {
@@ -64,8 +72,8 @@ function ChallengesContent() {
   const [genCategory, setGenCategory] = useState('WEB');
   const [genDifficulty, setGenDifficulty] = useState('EASY');
   const [generating, setGenerating] = useState(false);
-  const [generatedDraft, setGeneratedDraft] = useState<any | null>(null);
-  const [userDrafts, setUserDrafts] = useState<DraftDraft[]>([]);
+  const [generatedDraft, setGeneratedDraft] = useState<GeneratedDraft | null>(null);
+  const [userDrafts, setUserDrafts] = useState<UserDraft[]>([]);
 
   // Interactive Lab state
   const [sqliUsername, setSqliUsername] = useState('');
@@ -75,7 +83,7 @@ function ChallengesContent() {
   const [idorId, setIdorId] = useState('3');
   const [idorResult, setIdorResult] = useState<{ success: boolean; flag?: string; content: string } | null>(null);
 
-  const fetchChallenges = async () => {
+  const fetchChallenges = useCallback(async () => {
     try {
       const res = await fetch('/api/challenges');
       if (res.ok) {
@@ -91,9 +99,9 @@ function ChallengesContent() {
     } catch (err) {
       console.error('Error fetching challenges:', err);
     }
-  };
+  }, [defaultChallengeId]);
 
-  const fetchDrafts = async () => {
+  const fetchDrafts = useCallback(async () => {
     try {
       const res = await fetch('/api/generate');
       if (res.ok) {
@@ -103,12 +111,15 @@ function ChallengesContent() {
     } catch (err) {
       console.error('Error fetching drafts:', err);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchChallenges();
-    fetchDrafts();
-  }, [defaultChallengeId]);
+    async function loadInitialData() {
+      await Promise.all([fetchChallenges(), fetchDrafts()]);
+    }
+
+    loadInitialData();
+  }, [fetchChallenges, fetchDrafts]);
 
   const handleSelectChallenge = (ch: Challenge) => {
     setSelectedChallenge(ch);
@@ -162,7 +173,7 @@ function ChallengesContent() {
       } else {
         setSubmitMessage({ text: data.error || 'Terjadi kesalahan.', success: false });
       }
-    } catch (err) {
+    } catch {
       setSubmitMessage({ text: 'Gagal menghubungi server.', success: false });
     } finally {
       setSubmitting(false);

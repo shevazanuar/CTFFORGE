@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/context/AuthContext';
-import { Trophy, Award, Shield, Target } from 'lucide-react';
+import { Trophy } from 'lucide-react';
 
 interface User {
   id: string;
